@@ -6,8 +6,11 @@
 
   <ItemGroup>
     <Folder Include="Identity\" />
-    <Folder Include="Persistence\Configurations\" />
     <Folder Include="SignalR\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0" />
   </ItemGroup>
 
   <PropertyGroup>

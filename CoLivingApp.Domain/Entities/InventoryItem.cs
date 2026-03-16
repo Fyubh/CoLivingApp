@@ -17,7 +17,7 @@ public class InventoryItem
     public string UpdatedById { get; set; } = string.Empty;
 
     public Apartment? Apartment { get; set; }
-    public ProductCatalog? Catagit add .logItem { get; set; }
+    public ProductCatalog? CatalogItem { get; set; }
     public User? CreatedBy { get; set; }
     public User? UpdatedBy { get; set; }
 }
