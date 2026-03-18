@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Co-Living App</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        :root {
+            --ios-bg: #F2F2F7; --ios-card: #FFFFFF; --ios-blue: #007AFF;
+            --ios-green: #34C759; --ios-red: #FF3B30; --text-main: #000000; --text-muted: #8E8E93;
+        }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: var(--ios-bg); color: var(--text-main); margin: 0; padding: 0; padding-bottom: 90px; -webkit-font-smoothing: antialiased; }
+
+        /* Заголовки экранов */
+        .page-header { padding: 40px 20px 10px 20px; background: var(--ios-bg); position: sticky; top: 0; z-index: 10; }
+        .page-title { font-size: 34px; font-weight: 800; margin: 0; letter-spacing: -1px; }
+
+        .container { padding: 0 16px; }
+        .section { display: none; animation: fade 0.2s ease-in-out; }
+        .section.active { display: block; }
+        @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+
+        /* Карточки и списки */
+        .card { background: var(--ios-card); border-radius: 20px; padding: 16px; margin-bottom: 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); }
+        .balance-amount { font-size: 36px; font-weight: 800; margin: 10px 0; letter-spacing: -1px; }
+
+        .list-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #E5E5EA; }
+        .list-item:last-child { border-bottom: none; padding-bottom: 0; }
+        .item-info h4 { margin: 0 0 4px 0; font-size: 17px; }
+        .item-info p { margin: 0; font-size: 13px; color: var(--text-muted); }
+
+        /* Кнопки */
+        .btn { width: 100%; padding: 16px; border: none; border-radius: 14px; font-size: 17px; font-weight: 600; cursor: pointer; transition: 0.2s; }
+        .btn-primary { background: #E5F1FF; color: var(--ios-blue); }
+        .btn-solid { background: var(--ios-blue); color: white; }
+        .btn-action { padding: 8px 16px; border-radius: 20px; font-size: 14px; border: none; font-weight: 600; }
+        .btn-red { background: #FFEBEA; color: var(--ios-red); }
+        .btn-green { background: #E8F8EE; color: var(--ios-green); }
+
+        /* Навигация */
+        .tab-bar { position: fixed; bottom: 0; width: 100%; background: rgba(255,255,255,0.9); backdrop-filter: blur(10px); display: flex; justify-content: space-around; padding: 10px 0 20px 0; border-top: 1px solid #E5E5EA; z-index: 100; }
+        .tab-item { text-align: center; color: var(--text-muted); font-size: 10px; font-weight: 500; cursor: pointer; flex: 1; }
+        .tab-item.active { color: var(--text-main); }
+        .tab-item i { font-size: 24px; display: block; margin-bottom: 2px; }
+        .tab-item.active i { color: var(--ios-blue); }
+
+        /* Модальное окно (Checkout) */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 200; }
+        .modal { position: absolute; bottom: 0; width: 100%; background: var(--ios-bg); border-radius: 30px 30px 0 0; padding: 20px; box-sizing: border-box; transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); transform: translateY(100%); }
+        .modal.open { transform: translateY(0); }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+
+        /* Инпуты */
+        input, select { width: 100%; padding: 16px; margin-bottom: 12px; border: none; border-radius: 12px; background: var(--ios-card); font-size: 17px; box-sizing: border-box; }
+        .input-huge { font-size: 40px; font-weight: 800; text-align: center; background: transparent; padding: 10px; margin: 0; }
+
+        /* Аватарки */
+        .avatar-group { display: flex; align-items: center; }
+        .avatar { width: 30px; height: 30px; border-radius: 15px; background: #D1D1D6; color: white; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; border: 2px solid white; margin-left: -10px; }
+        .avatar:first-child { margin-left: 0; background: #AF52DE; }
+        .avatar:nth-child(2) { background: #5AC8FA; }
+        .avatar:nth-child(3) { background: #FF9500; }
+    </style>
+</head>
+<body>
+
+<div id="view-finance" class="section active">
+    <div class="page-header">
+        <h1 class="page-title">Finance</h1>
+    </div>
+    <div class="container">
+        <div class="card" style="text-align: center;">
+            <p style="margin:0; color:var(--text-muted); font-size: 14px;">Shared Account Balance</p>
+            <div class="balance-amount" id="total-balance">$0.00</div>
+            <div class="avatar-group" style="justify-content: center; margin-bottom: 15px;" id="balance-avatars">
+            </div>
+            <button class="btn btn-primary" onclick="openCheckoutModal()">Add Shared Bill</button>
+        </div>
+
+        <h3 style="margin-left: 10px;">Shared Bills & Tasks</h3>
+        <div class="card" id="expenses-list">
+            <p style="color: var(--text-muted); text-align:center;">Здесь будут чеки...</p>
+        </div>
+    </div>
+</div>
+
+<div id="view-inventory" class="section">
+    <div class="page-header">
+        <h1 class="page-title">Inventory</h1>
+    </div>
+    <div class="container">
+        <div style="display: flex; gap: 10px; overflow-x: auto; margin-bottom: 15px; padding-bottom: 5px;">
+            <span style="background: white; padding: 8px 16px; border-radius: 20px; font-weight: 600; font-size: 14px;">All</span>
+            <span style="background: #E5E5EA; padding: 8px 16px; border-radius: 20px; font-weight: 600; font-size: 14px; color: var(--text-muted);">Food 🍎</span>
+            <span style="background: #E5E5EA; padding: 8px 16px; border-radius: 20px; font-weight: 600; font-size: 14px; color: var(--text-muted);">Household 🧼</span>
+        </div>
+
+        <div class="card" id="inventory-list">
+        </div>
+        <button class="btn btn-primary" onclick="alert('Откроет экран Add Product')">+ Add Product</button>
+    </div>
+</div>
+
+<div id="view-shopping" class="section">
+    <div class="page-header">
+        <h1 class="page-title">Shopping<br>List</h1>
+    </div>
+    <div class="container">
+        <div class="card" style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <p style="margin:0; color:var(--text-muted); font-size: 13px;">Apartment Essentials</p>
+                <h2 style="margin: 0; font-size: 24px;">3 Items <span style="font-weight: normal; font-size: 16px;">needed</span></h2>
+            </div>
+            <div class="avatar-group">
+                <div class="avatar">S</div><div class="avatar">A</div><div class="avatar">B</div>
+            </div>
+        </div>
+
+        <div class="card" id="cart-list">
+        </div>
+
+        <button class="btn btn-primary" style="background: #E5F1FF; margin-bottom: 10px;" onclick="alert('Добавление товара')">Add product</button>
+
+        <div class="card" style="background: linear-gradient(135deg, #E5F1FF, #FFFFFF); text-align: center; border: 1px solid #CCE4FF;">
+            <button class="btn" style="background: transparent; color: var(--text-main); font-size: 18px;" onclick="openCheckoutModal()">
+                🛒 Checkout & Split
+            </button>
+        </div>
+    </div>
+</div>
+
+<div id="view-settings" class="section">
+    <div class="page-header">
+        <h1 class="page-title">Settings</h1>
+    </div>
+    <div class="container">
+        <div class="card" id="auth-block">
+            <h3>System Setup</h3>
+            <input type="text" id="sys-user" placeholder="Your ID (e.g. sarah)">
+            <input type="text" id="sys-apt" placeholder="Apartment ID (e.g. house1)">
+            <button class="btn btn-solid" onclick="setupSystem()">Save & Load Data</button>
+        </div>
+    </div>
+</div>
+
+<div class="tab-bar">
+    <div class="tab-item active" onclick="switchTab('finance', this)"><i class="bi bi-diamond-fill"></i>Finance</div>
+    <div class="tab-item" onclick="switchTab('inventory', this)"><i class="bi bi-circle-fill"></i>Inventory</div>
+    <div class="tab-item" onclick="switchTab('shopping', this)"><i class="bi bi-triangle-fill" style="color: var(--ios-blue);"></i>Shopping List</div>
+    <div class="tab-item" onclick="switchTab('settings', this)"><i class="bi bi-gear-fill"></i>Settings</div>
+</div>
+
+<div class="modal-overlay" id="checkout-modal">
+    <div class="modal" id="checkout-modal-content">
+        <div class="modal-header">
+            <span style="color: var(--ios-blue); font-size: 17px; cursor: pointer;" onclick="closeCheckoutModal()">Cancel</span>
+            <span style="font-weight: 600; font-size: 17px;">Checkout & Split</span>
+            <span style="width: 50px;"></span>
+        </div>
+
+        <p style="text-align: center; margin: 0; color: var(--text-muted); font-size: 14px;">Total Bill Amount</p>
+        <input type="number" id="split-amount" class="input-huge" placeholder="$0.00">
+        <p style="text-align: center; color: var(--text-muted); font-size: 13px; margin-top: -10px; margin-bottom: 20px;">Enter final receipt total</p>
+
+        <select id="split-payer">
+            <option value="sarah">Sarah Paid</option>
+            <option value="alex">Alex Paid</option>
+            <option value="ben">Ben Paid</option>
+        </select>
+
+        <button class="btn btn-solid" style="margin-top: 10px;" onclick="executeCheckout()">Split & Finish</button>
+    </div>
+</div>
+
+<script>
+    // Имитация состояния (чтобы UI работал и выглядел красиво, пока мы дописываем Backend)
+    function switchTab(tab, element) {
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+        document.getElementById(`view-${tab}`).classList.add('active');
+        element.classList.add('active');
+
+        if(tab === 'finance') loadMockFinance();
+        if(tab === 'inventory') loadMockInventory();
+        if(tab === 'shopping') loadMockShopping();
+    }
+
+    // Модалка
+    function openCheckoutModal() {
+        document.getElementById('checkout-modal').style.display = 'block';
+        setTimeout(() => document.getElementById('checkout-modal-content').classList.add('open'), 10);
+    }
+    function closeCheckoutModal() {
+        document.getElementById('checkout-modal-content').classList.remove('open');
+        setTimeout(() => document.getElementById('checkout-modal').style.display = 'none', 300);
+    }
+
+    function setupSystem() {
+        alert('Settings Saved! Use the tabs below to navigate the mock data matching the UI.');
+    }
+
+    // Заглушки данных для демонстрации UI (Так будет выглядеть ответ от нашего будущего бэкенда)
+    function loadMockFinance() {
+        document.getElementById('total-balance').innerText = "$245.80";
+        document.getElementById('balance-avatars').innerHTML = `
+                <div class="avatar">S</div>
+                <div class="avatar" style="background:#5AC8FA">A</div>
+                <div class="avatar" style="background:#FF9500">B</div>
+            `;
+        document.getElementById('expenses-list').innerHTML = `
+                <div class="list-item">
+                    <div class="item-info"><h4>Walmart Groceries</h4><p>Oct 24</p></div>
+                    <div style="text-align: right;">
+                        <h4 style="margin:0;">$120.00</h4>
+                        <span class="btn-action btn-green">Paid</span>
+                    </div>
+                </div>
+            `;
+    }
+
+    function loadMockInventory() {
+        document.getElementById('inventory-list').innerHTML = `
+                <div class="list-item">
+                    <div class="item-info">
+                        <h4>🍎 Apple</h4><p>1 Package</p>
+                    </div>
+                    <div style="display:flex; gap: 8px;">
+                        <button class="btn-action btn-red" onclick="alert('Будет вызвана RemoveItemCommand')">Remove</button>
+                        <button class="btn-action btn-green" onclick="alert('Будет вызвана MoveItemToCartCommand')">Move to Cart</button>
+                    </div>
+                </div>
+                <div class="list-item">
+                    <div class="item-info">
+                        <h4>🧼 Hand Soap</h4><p>1 Bottle</p>
+                    </div>
+                    <div style="display:flex; gap: 8px;">
+                        <button class="btn-action btn-red">Remove</button>
+                        <button class="btn-action btn-green">Move to Cart</button>
+                    </div>
+                </div>
+            `;
+    }
+
+    function loadMockShopping() {
+        document.getElementById('cart-list').innerHTML = `
+                <div class="list-item">
+                    <div class="item-info"><h4>🍎 Apple</h4><p>1 Package</p></div>
+                    <button class="btn-action btn-green">Buy ✓</button>
+                </div>
+                <div class="list-item">
+                    <div class="item-info"><h4>🍞 Bread</h4><p>1 Package</p></div>
+                    <button class="btn-action" style="background:#E5E5EA; color:#000;">Buy</button>
+                </div>
+            `;
+    }
+
+    async function executeCheckout() {
+        const amount = document.getElementById('split-amount').value;
+        const payer = document.getElementById('split-payer').value;
+
+        alert(`Здесь фронтенд отправит запрос: CheckoutAndSplitCommand \nСумма: $${amount} \nКто платил: ${payer}\n\nБэкенд перенесет товары обратно в инвентарь и разделит чек!`);
+        closeCheckoutModal();
+        switchTab('finance', document.querySelectorAll('.tab-item')[0]);
+    }
+
+    // Start
+    loadMockFinance();
+</script>
+</body>
+</html>

@@ -1,5 +1,6 @@
 using CoLivingApp.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using CoLivingApp.Application.Abstractions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,6 +12,10 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(connectionString));
+builder.Services.AddScoped<IApplicationDbContext>(provider => 
+    provider.GetRequiredService<ApplicationDbContext>());
+builder.Services.AddMediatR(cfg => 
+    cfg.RegisterServicesFromAssembly(typeof(CoLivingApp.Application.Features.Apartments.Commands.CreateApartment.CreateApartmentCommand).Assembly));
 
 builder.Services.AddControllers();
 
@@ -31,10 +36,16 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseDefaultFiles();
+
+app.UseStaticFiles();
+    
 app.UseHttpsRedirection();
 
 app.UseAuthorization();
 
 app.MapControllers();
+
+
 
 app.Run();
