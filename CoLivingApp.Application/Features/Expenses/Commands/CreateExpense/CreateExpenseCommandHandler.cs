@@ -1,6 +1,6 @@
-// Файл: CoLivingApp.Application/Features/Expenses/Commands/CreateExpense/CreateExpenseCommandHandler.cs
 using CoLivingApp.Application.Abstractions;
 using CoLivingApp.Domain.Entities;
+using CoLivingApp.Domain.Enums;
 using CoLivingApp.Domain.Shared;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -10,45 +10,34 @@ namespace CoLivingApp.Application.Features.Expenses.Commands.CreateExpense;
 public class CreateExpenseCommandHandler : IRequestHandler<CreateExpenseCommand, Result<Guid>>
 {
     private readonly IApplicationDbContext _context;
-
-    public CreateExpenseCommandHandler(IApplicationDbContext context)
-    {
-        _context = context;
-    }
+    public CreateExpenseCommandHandler(IApplicationDbContext context) => _context = context;
 
     public async Task<Result<Guid>> Handle(CreateExpenseCommand request, CancellationToken cancellationToken)
     {
-        // 1. Получаем всех активных жильцов квартиры
+        // 1. Ищем всех жильцов
         var members = await _context.ApartmentMembers
             .Where(m => m.ApartmentId == request.ApartmentId && m.IsActive)
             .ToListAsync(cancellationToken);
 
-        if (members.Count == 0)
-            return Result<Guid>.Failure("В квартире нет активных жильцов.");
+        // Защита: Если человек живет один, чек не делится, выдаем ошибку или предупреждение
+        if (members.Count <= 1)
+            return Result<Guid>.Failure("Вы единственный жилец в квартире. Делить счет не с кем!");
 
-        // 2. Создаем основной расход (чек)
         var expense = new Expense
         {
             ApartmentId = request.ApartmentId,
             PayerId = request.PayerId,
             Amount = request.Amount,
             Description = request.Description,
+            Category = request.Category,
             Date = DateTime.UtcNow
         };
 
-        // 3. Рассчитываем долю каждого (делим поровну)
+        // Делим на всех
         decimal splitAmount = request.Amount / members.Count;
-
-        // 4. Создаем записи о долях (кто сколько должен в рамках этого чека)
         foreach (var member in members)
         {
-            var split = new ExpenseSplit
-            {
-                ExpenseId = expense.Id,
-                UserId = member.UserId,
-                Amount = splitAmount
-            };
-            expense.Splits.Add(split);
+            expense.Splits.Add(new ExpenseSplit { ExpenseId = expense.Id, UserId = member.UserId, Amount = splitAmount });
         }
 
         _context.Expenses.Add(expense);

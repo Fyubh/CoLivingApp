@@ -4,5 +4,6 @@ public enum ItemStatus
 {
     Available,
     RunningLow,
-    InCart
+    InCart,
+    Consumed
 }

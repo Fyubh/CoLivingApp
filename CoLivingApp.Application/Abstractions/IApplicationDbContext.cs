@@ -14,6 +14,7 @@ public interface IApplicationDbContext
     DbSet<Settlement> Settlements { get; }
     DbSet<ProductCatalog> ProductCatalogs { get; }
     DbSet<InventoryItem> InventoryItems { get; }
+    DbSet<Chore> Chores { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }

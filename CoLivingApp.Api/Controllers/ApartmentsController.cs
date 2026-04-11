@@ -1,53 +1,46 @@
-// Файл: CoLivingApp.Api/Controllers/ApartmentsController.cs
 using CoLivingApp.Application.Features.Apartments.Commands.CreateApartment;
 using CoLivingApp.Application.Features.Apartments.Commands.JoinApartment;
+using CoLivingApp.Application.Features.Apartments.Queries.GetApartment;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace CoLivingApp.Api.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class ApartmentsController : ControllerBase
 {
     private readonly IMediator _mediator;
 
-    // Внедряем интерфейс MediatR. 
-    // Контроллеру вообще не нужно знать, как работает база данных!
-    public ApartmentsController(IMediator mediator)
+    public ApartmentsController(IMediator mediator) => _mediator = mediator;
+
+    [HttpPost("create")]
+    public async Task<IActionResult> Create([FromBody] CreateApartmentCommand command)
     {
-        _mediator = mediator;
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var secureCommand = command with { CreatorUserId = userId! };
+
+        var result = await _mediator.Send(secureCommand);
+        return result.IsSuccess ? Ok(new { apartmentId = result.Value }) : BadRequest(new { error = result.Error });
     }
 
-    /// <summary>
-    /// Создает новую квартиру и генерирует инвайт-код.
-    /// </summary>
-    [HttpPost]
-    public async Task<IActionResult> CreateApartment([FromBody] CreateApartmentCommand command)
-    {
-        // Отправляем команду в MediatR. Он сам найдет нужный Handler.
-        var result = await _mediator.Send(command);
-
-        // Обрабатываем наш красивый паттерн Result
-        if (!result.IsSuccess)
-        {
-            // Если ошибка бизнес-логики (например, юзер не найден)
-            return BadRequest(new { error = result.Error });
-        }
-
-        // Если всё отлично, возвращаем HTTP 200 OK и ID новой квартиры
-        return Ok(new { apartmentId = result.Value });
-    }
     [HttpPost("join")]
-    public async Task<IActionResult> JoinApartment([FromBody] JoinApartmentCommand command)
+    public async Task<IActionResult> Join([FromBody] JoinApartmentCommand command)
     {
-        var result = await _mediator.Send(command);
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var secureCommand = command with { UserId = userId! };
 
-        if (!result.IsSuccess)
-        {
-            return BadRequest(new { error = result.Error });
-        }
-
-        return Ok(new { apartmentId = result.Value });
+        var result = await _mediator.Send(secureCommand);
+        return result.IsSuccess ? Ok(new { apartmentId = result.Value }) : BadRequest(new { error = result.Error });
+    }
+    
+    [HttpGet("{id}")]
+    public async Task<IActionResult> Get(Guid id)
+    {
+        var result = await _mediator.Send(new GetApartmentQuery(id));
+        return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
     }
 }

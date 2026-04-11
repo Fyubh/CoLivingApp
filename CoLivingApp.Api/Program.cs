@@ -1,6 +1,9 @@
 using CoLivingApp.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using CoLivingApp.Application.Abstractions;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,14 +12,29 @@ var builder = WebApplication.CreateBuilder(args);
 // ==========================================
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-
+builder.Services.AddSignalR();
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(connectionString));
 builder.Services.AddScoped<IApplicationDbContext>(provider => 
     provider.GetRequiredService<ApplicationDbContext>());
 builder.Services.AddMediatR(cfg => 
     cfg.RegisterServicesFromAssembly(typeof(CoLivingApp.Application.Features.Apartments.Commands.CreateApartment.CreateApartmentCommand).Assembly));
+// НАСТРОЙКА JWT АВТОРИЗАЦИИ
+var jwtSecret = builder.Configuration["JwtSettings:Secret"];
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(jwtSecret!)),
+            ValidateIssuer = false,
+            ValidateAudience = false,
+            ValidateLifetime = true
+        };
+    });
 
+builder.Services.AddAuthorization(); // Обязательно добавляем сервисы авторизации
 builder.Services.AddControllers();
 
 // Настройка Swagger 
@@ -46,6 +64,6 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-
+app.MapHub<CoLivingApp.Api.Hubs.CoLivingHub>("/hubs/coliving");
 
 app.Run();
