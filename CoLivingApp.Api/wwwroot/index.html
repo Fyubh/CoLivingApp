@@ -41,7 +41,6 @@
 </head>
 <body>
 
-<!-- 1. FINANCE TAB -->
 <div id="view-finance" class="section">
     <div class="page-header"><h1 class="page-title">Finance</h1></div>
     <div class="container">
@@ -58,31 +57,26 @@
     </div>
 </div>
 
-<!-- 2. INVENTORY TAB -->
 <div id="view-inventory" class="section">
     <div class="page-header"><h1 class="page-title">Inventory</h1></div>
     <div class="container">
         <div class="card" id="inventory-list">Loading...</div>
-        <!-- Вызываем модалку со статусом 0 (Inventory) -->
         <button class="btn btn-primary" onclick="openAddProductModal(0)">+ Add Product</button>
     </div>
 </div>
 
-<!-- 3. SHOPPING LIST TAB -->
 <div id="view-shopping" class="section">
     <div class="page-header"><h1 class="page-title">Shopping</h1></div>
     <div class="container">
         <div class="card" id="cart-list">Loading...</div>
 
         <div style="display:flex; gap:10px;">
-            <!-- Вызываем модалку со статусом 2 (Cart) -->
             <button class="btn btn-primary" style="flex:1;" onclick="openAddProductModal(2)">+ Add to List</button>
             <button class="btn btn-solid" style="flex:2;" onclick="openModal('checkout-modal')">🛒 Checkout & Split</button>
         </div>
     </div>
 </div>
 
-<!-- 4. TASKS (CHORES) TAB -->
 <div id="view-tasks" class="section">
     <div class="page-header"><h1 class="page-title">Tasks</h1></div>
     <div class="container">
@@ -91,7 +85,6 @@
     </div>
 </div>
 
-<!-- 5. SETTINGS TAB -->
 <div id="view-settings" class="section active">
     <div class="page-header"><h1 class="page-title">Settings</h1></div>
     <div class="container">
@@ -117,7 +110,6 @@
     </div>
 </div>
 
-<!-- BOTTOM NAVIGATION -->
 <div class="tab-bar">
     <div class="tab-item" onclick="switchTab('finance', this)"><i class="bi bi-diamond-fill"></i>Finance</div>
     <div class="tab-item" onclick="switchTab('inventory', this)"><i class="bi bi-box-seam-fill"></i>Inventory</div>
@@ -127,11 +119,6 @@
 </div>
 
 
-<!-- ============================================== -->
-<!-- ================= MODALS ======================= -->
-<!-- ============================================== -->
-
-<!-- Добавление Задачи -->
 <div class="modal-overlay" id="add-task-modal">
     <div class="modal" id="add-task-content">
         <div class="modal-header">
@@ -143,11 +130,14 @@
         <select id="task-assignee">
             <option value="">Anyone (Unassigned)</option>
         </select>
+
+        <p style="text-align:center; font-size:14px; color:gray; margin:10px 0 5px 0;">Deadline (Optional)</p>
+        <input type="date" id="task-due-date">
+
         <button class="btn btn-solid" style="margin-top:15px;" onclick="executeCreateTask()">Save Task</button>
     </div>
 </div>
 
-<!-- Добавление Продукта (Умное - для Инвентаря и Корзины) -->
 <div class="modal-overlay" id="add-product-modal">
     <div class="modal" id="add-product-content">
         <div class="modal-header">
@@ -171,8 +161,6 @@
             <option value="2">🧴 Hygiene</option>
             <option value="3">📦 Other</option>
         </select>
-
-        <!-- Оборачиваем в div, чтобы скрывать при добавлении в корзину -->
         <div id="advanced-inventory-fields">
             <select id="prod-location">
                 <option value="0">❄️ Fridge</option>
@@ -183,12 +171,10 @@
             <p style="font-size:13px; color:gray; margin:0 0 5px 5px;">Expiry Date (Optional)</p>
             <input type="date" id="prod-expiry">
         </div>
-
         <button class="btn btn-solid" style="margin-top:10px;" onclick="executeAddProduct()">Save</button>
     </div>
 </div>
 
-<!-- Оплата корзины -->
 <div class="modal-overlay" id="checkout-modal">
     <div class="modal" id="checkout-modal-content">
         <div class="modal-header"><span style="color: var(--ios-blue); cursor: pointer;" onclick="closeModal('checkout-modal')">Cancel</span><span style="font-weight: 600;">Checkout List</span><span></span></div>
@@ -196,7 +182,6 @@
     </div>
 </div>
 
-<!-- Добавление кастомного чека -->
 <div class="modal-overlay" id="custom-bill-modal">
     <div class="modal" id="custom-bill-content">
         <div class="modal-header"><span style="color: var(--ios-blue); cursor: pointer;" onclick="closeModal('custom-bill-modal')">Cancel</span><span style="font-weight: 600;">Add Custom Bill</span><span></span></div>
@@ -214,7 +199,6 @@
     </div>
 </div>
 
-<!-- Возврат долга -->
 <div class="modal-overlay" id="settle-debt-modal">
     <div class="modal" id="settle-debt-content">
         <div class="modal-header"><span style="color: var(--ios-blue); cursor: pointer;" onclick="closeModal('settle-debt-modal')">Cancel</span><span style="font-weight: 600;">Settle Up</span><span></span></div>
@@ -222,9 +206,6 @@
     </div>
 </div>
 
-<!-- ============================================== -->
-<!-- ================= SCRIPTS ==================== -->
-<!-- ============================================== -->
 <script>
     const API_URL = '/api';
     let selectedCartItems = [];
@@ -362,7 +343,7 @@
     }
 
     // --- 2. ИНВЕНТАРЬ И КОРЗИНА (ОБЩАЯ ЛОГИКА) ---
-    let currentTargetStatus = 0; // 0 = Inventory, 2 = Cart
+    let currentTargetStatus = 0;
 
     function openAddProductModal(status) {
         currentTargetStatus = status;
@@ -445,22 +426,101 @@
         closeModal('checkout-modal'); document.getElementById('split-amount').value = ''; switchTab('finance', document.querySelectorAll('.tab-item')[0]);
     }
 
-    // --- 4. ЗАДАЧИ ---
+    // --- 4. ЗАДАЧИ (ПОЛНОСТЬЮ ОБНОВЛЕННЫЕ) ---
     async function loadTasks() {
         if (!getAptId()) return;
         const tasks = await apiFetch(`/Chores/${getAptId()}`);
         if (tasks) {
-            document.getElementById('tasks-list').innerHTML = tasks.map(t => `<div class="list-item ${t.isCompleted ? 'chore-done' : ''}"><div class="item-info"><h4>${t.title}</h4><p>${t.assignedName ? `Assigned to: ${t.assignedName}` : 'Anyone can do it'}</p></div>${!t.isCompleted ? `<button class="btn-action" style="background:#E5E5EA;" onclick="completeTask('${t.id}')">Done ✓</button>` : `<span style="color:var(--ios-green)">Completed</span>`}</div>`).join('') || "<p style='text-align:center; color:gray'>No tasks yet</p>";
+            document.getElementById('tasks-list').innerHTML = tasks.map(t => {
+                // Красиво форматируем дедлайн, если он есть
+                let dueHtml = t.dueDate ? `<span style="color:var(--ios-red); font-size:12px; font-weight:bold; display:block; margin-top:4px;">⏳ Due: ${new Date(t.dueDate).toLocaleDateString()}</span>` : '';
+
+                let actionHtml = '';
+
+                if (t.status === 0) { // Pending
+                    if (t.canComplete) {
+                        actionHtml = `<button class="btn-action" style="background:#E5E5EA;" onclick="completeTask('${t.id}')">Done ✓</button>`;
+                    } else {
+                        // Если чужая задача
+                        actionHtml = `<span style="font-size:12px; color:gray;">In Progress</span>`;
+                    }
+                } else if (t.status === 1) { // Needs Review
+                    if (t.canReview) {
+                        actionHtml = `
+                            <div style="display:flex; flex-direction:column; gap:5px;">
+                                <span style="font-size:10px; color:gray; text-align:center;">Needs Review</span>
+                                <div style="display:flex; gap:5px;">
+                                    <button class="btn-action btn-green" onclick="confirmTask('${t.id}')">👍</button>
+                                    <button class="btn-action btn-red" onclick="rejectTask('${t.id}')">👎</button>
+                                </div>
+                            </div>`;
+                    } else {
+                        // Если это ТЫ выполнил задачу и ждешь оценки
+                        actionHtml = `<span style="font-size:12px; color:#FF9500; font-weight:bold; text-align:center;">Waiting for<br>approval ⏳</span>`;
+                    }
+                } else { // Completed
+                    actionHtml = `<span style="color:var(--ios-green); font-weight:bold; font-size:14px;">Completed</span>`;
+                }
+
+                return `
+                <div class="list-item ${t.status === 2 ? 'chore-done' : ''}">
+                    <div class="item-info">
+                        <h4>${t.title}</h4>
+                        <p>${t.assignedName ? `Assigned to: ${t.assignedName}` : 'Anyone can do it'}</p>
+                        ${dueHtml}
+                    </div>
+                    ${actionHtml}
+                </div>`;
+            }).join('') || "<p style='text-align:center; color:gray'>No tasks yet</p>";
         }
     }
+
     async function executeCreateTask() {
         const title = document.getElementById('task-title').value;
+        const dueDate = document.getElementById('task-due-date').value; // Берем дату из инпута
+
         if (!title) return alert("Enter a task title");
-        await apiFetch('/Chores', 'POST', { apartmentId: getAptId(), title: title, assignedUserId: document.getElementById('task-assignee').value });
-        closeModal('add-task-modal'); document.getElementById('task-title').value = ''; loadTasks();
+
+        await apiFetch('/Chores', 'POST', {
+            apartmentId: getAptId(),
+            title: title,
+            assignedUserId: document.getElementById('task-assignee').value,
+            dueDate: dueDate ? new Date(dueDate).toISOString() : null // Отправляем на бэк
+        });
+
+        closeModal('add-task-modal');
+        document.getElementById('task-title').value = '';
+        document.getElementById('task-due-date').value = '';
+        loadTasks();
     }
+
     async function completeTask(taskId) {
-        await apiFetch(`/Chores/${taskId}/complete`, 'POST', { apartmentId: getAptId() }); loadTasks();
+        await apiFetch(`/Chores/${taskId}/complete`, 'POST', {
+            apartmentId: getAptId(),
+            choreId: taskId,
+            userId: "ignored"
+        });
+        loadTasks();
+    }
+
+    async function confirmTask(taskId) {
+        await apiFetch(`/Chores/${taskId}/confirm`, 'POST', {
+            apartmentId: getAptId(),
+            choreId: taskId,
+            userId: "ignored"
+        });
+        loadTasks();
+    }
+
+    async function rejectTask(taskId) {
+        if(confirm("Tell them to do it again?")) {
+            await apiFetch(`/Chores/${taskId}/reject`, 'POST', {
+                apartmentId: getAptId(),
+                choreId: taskId,
+                userId: "ignored"
+            });
+            loadTasks();
+        }
     }
 
     // INIT
