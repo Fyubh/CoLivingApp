@@ -13,22 +13,25 @@ public class GetExpensesQueryHandler : IRequestHandler<GetExpensesQuery, Result<
 
     public async Task<Result<List<ExpenseDto>>> Handle(GetExpensesQuery request, CancellationToken cancellationToken)
     {
+        // 1. Сначала ДОСТАЕМ ИЗ БАЗЫ (без Select, чтобы PostgreSQL не ругался на конвертацию)
         var expenses = await _context.Expenses
             .AsNoTracking()
             .Include(e => e.Payer)
             .Where(e => e.ApartmentId == request.ApartmentId)
             .OrderByDescending(e => e.Date)
-            .Select(e => new ExpenseDto(
-                e.Id, 
-                e.Description, 
-                e.Amount, 
-                e.Date, 
-                e.PayerId, 
-                e.Payer != null ? e.Payer.Name : "Unknown", 
-                (int)e.Category
-            ))
-            .ToListAsync(cancellationToken); // <--- ВОТ ЗДЕСЬ БЫЛА ОШИБКА, ЭТОГО КУСКА НЕ ХВАТАЛО
+            .ToListAsync(cancellationToken);
 
-        return Result<List<ExpenseDto>>.Success(expenses);
+        // 2. Делаем маппинг в DTO уже в оперативной памяти C#
+        var dtos = expenses.Select(e => new ExpenseDto(
+            e.Id, 
+            e.Description, 
+            e.Amount, 
+            e.Date, 
+            e.PayerId, 
+            e.Payer != null ? e.Payer.Name : "Unknown", 
+            (int)e.Category // В C# это сработает идеально
+        )).ToList();
+
+        return Result<List<ExpenseDto>>.Success(dtos);
     }
 }

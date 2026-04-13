@@ -15,6 +15,8 @@ public interface IApplicationDbContext
     DbSet<ProductCatalog> ProductCatalogs { get; }
     DbSet<InventoryItem> InventoryItems { get; }
     DbSet<Chore> Chores { get; }
+    DbSet<RecurringExpense> RecurringExpenses { get; }
+    DbSet<RecurringChore> RecurringChores { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }

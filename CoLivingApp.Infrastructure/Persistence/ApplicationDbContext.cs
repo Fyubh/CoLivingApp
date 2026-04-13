@@ -29,8 +29,10 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
     public DbSet<Settlement> Settlements => Set<Settlement>();
     public DbSet<ProductCatalog> ProductCatalogs => Set<ProductCatalog>();
     public DbSet<InventoryItem> InventoryItems => Set<InventoryItem>();
-    
     public DbSet<Chore> Chores => Set<Chore>();
+    public DbSet<RecurringExpense> RecurringExpenses => Set<RecurringExpense>();
+    public DbSet<RecurringChore> RecurringChores => Set<RecurringChore>();
+
 
     /// <summary>
     /// Этот метод вызывается один раз при старте приложения, когда EF Core 

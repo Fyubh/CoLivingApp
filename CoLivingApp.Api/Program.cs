@@ -4,6 +4,7 @@ using CoLivingApp.Application.Abstractions;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using CoLivingApp.Infrastructure.BackgroundJobs;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,6 +25,7 @@ builder.Services.AddCors(options =>
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddSignalR();
+builder.Services.AddHostedService<SchedulerBackgroundService>();
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(connectionString));
 builder.Services.AddScoped<IApplicationDbContext>(provider => 

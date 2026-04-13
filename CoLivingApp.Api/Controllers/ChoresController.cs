@@ -55,4 +55,17 @@ public class ChoresController : ControllerBase
         var result = await _mediator.Send(new GetChoresQuery(apartmentId, userId!)); // Передаем UserId
         return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
     }
+    [HttpPost("recurring")]
+    public async Task<IActionResult> CreateRecurring([FromBody] CreateRecurringChoreCommand command)
+    {
+        // Не забываем, что ID пользователя передавать не обязательно, он может назначить кого угодно
+        var result = await _mediator.Send(command);
+        return result.IsSuccess ? Ok(new { id = result.Value }) : BadRequest(new { error = result.Error });
+    }
+    [HttpGet("recurring/{apartmentId}")]
+    public async Task<IActionResult> GetRecurring(Guid apartmentId)
+    {
+        var result = await _mediator.Send(new GetRecurringChoresQuery(apartmentId));
+        return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
+    }
 }

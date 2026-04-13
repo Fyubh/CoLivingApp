@@ -3,6 +3,7 @@ using CoLivingApp.Application.Features.Expenses.Commands.SettleDebt;
 using CoLivingApp.Application.Features.Expenses.Queries.GetBalance;
 using CoLivingApp.Application.Features.Expenses.Queries.GetExpenses;
 using CoLivingApp.Api.Hubs;
+using CoLivingApp.Application.Features.Expenses.Commands.CreateRecurringExpense; 
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -69,6 +70,20 @@ public class ExpensesController : ControllerBase
     public async Task<IActionResult> GetSettlements(Guid apartmentId)
     {
         var result = await _mediator.Send(new CoLivingApp.Application.Features.Expenses.Queries.GetSettlements.GetSettlementsQuery(apartmentId));
+        return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
+    }
+    [HttpPost("recurring")]
+    public async Task<IActionResult> CreateRecurring([FromBody] CreateRecurringExpenseCommand command)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var result = await _mediator.Send(command with { PayerId = userId! });
+        
+        return result.IsSuccess ? Ok(new { id = result.Value }) : BadRequest(new { error = result.Error });
+    }
+    [HttpGet("recurring/{apartmentId}")]
+    public async Task<IActionResult> GetRecurring(Guid apartmentId)
+    {
+        var result = await _mediator.Send(new CoLivingApp.Application.Features.Expenses.GetRecurringExpensesQuery(apartmentId));
         return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
     }
 }
