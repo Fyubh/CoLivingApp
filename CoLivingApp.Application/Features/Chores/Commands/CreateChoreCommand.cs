@@ -1,11 +1,20 @@
 using CoLivingApp.Application.Abstractions;
 using CoLivingApp.Domain.Entities;
+using CoLivingApp.Domain.Enums; // <--- ВОТ ЭТА ВАЖНАЯ СТРОКА
 using CoLivingApp.Domain.Shared;
 using MediatR;
 
 namespace CoLivingApp.Application.Features.Chores;
 
-public record CreateChoreCommand(Guid ApartmentId, string Title, string? AssignedUserId, DateTime? DueDate) : IRequest<Result<Guid>>;
+// 1. Обновили рекорд (добавили Description и Category)
+public record CreateChoreCommand(
+    Guid ApartmentId, 
+    string Title, 
+    string? Description, 
+    int Category, 
+    string? AssignedUserId, 
+    DateTime? DueDate
+) : IRequest<Result<Guid>>;
 
 public class CreateChoreCommandHandler : IRequestHandler<CreateChoreCommand, Result<Guid>>
 {
@@ -22,6 +31,8 @@ public class CreateChoreCommandHandler : IRequestHandler<CreateChoreCommand, Res
         {
             ApartmentId = request.ApartmentId,
             Title = request.Title,
+            Description = request.Description,             // Тот самый кусок
+            Category = (ChoreCategory)request.Category,    // Тот самый кусок
             AssignedUserId = string.IsNullOrWhiteSpace(request.AssignedUserId) ? null : request.AssignedUserId,
             DueDate = safeUtcDueDate
         };

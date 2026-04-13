@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Co-Living App</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
-    <!-- SignalR для Real-Time обновлений -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.12/signalr.min.js"></script>
     <style>
         :root { --ios-bg: #F2F2F7; --ios-card: #FFFFFF; --ios-blue: #007AFF; --ios-green: #34C759; --ios-red: #FF3B30; --text-main: #000000; --text-muted: #8E8E93; }
@@ -125,12 +124,13 @@
             <p style="font-size: 14px; font-weight: bold; margin-top:20px;">Join Existing</p>
             <input type="text" id="invite-code" placeholder="Invite Code">
             <button class="btn btn-primary" onclick="joinApartment()">Join</button>
-            <button class="btn btn-red" style="margin-top: 25px;" onclick="logout()">Logout</button>
+
+            <button class="btn btn-primary" style="margin-top: 25px;" onclick="openModal('change-password-modal')">Change Password</button>
+            <button class="btn btn-red" style="margin-top: 10px;" onclick="logout()">Logout</button>
         </div>
     </div>
 </div>
 
-<!-- Нижняя панель навигации -->
 <div class="tab-bar">
     <div class="tab-item" onclick="switchTab('finance', this)"><i class="bi bi-diamond-fill"></i>Finance</div>
     <div class="tab-item" onclick="switchTab('inventory', this)"><i class="bi bi-box-seam-fill"></i>Inventory</div>
@@ -139,15 +139,50 @@
     <div class="tab-item active" onclick="switchTab('settings', this)"><i class="bi bi-gear-fill"></i>Settings</div>
 </div>
 
-<!-- ================= МОДАЛЬНЫЕ ОКНА ================= -->
 <div class="modal-overlay" id="add-task-modal">
     <div class="modal" id="add-task-content">
         <div class="modal-header"><span style="color: var(--ios-blue); cursor: pointer;" onclick="closeModal('add-task-modal')">Cancel</span><span style="font-weight: 600;">New Task</span><span></span></div>
         <input type="text" id="task-title" placeholder="What needs to be done?">
+        <input type="text" id="task-desc" placeholder="Details/Description (Optional)">
+        <select id="task-category">
+            <option value="0">🧹 Vacuum</option>
+            <option value="1">🪣 Mop</option>
+            <option value="2">🚽 Toilet</option>
+            <option value="3">🍳 Kitchen</option>
+            <option value="4">🍽️ Dishes</option>
+            <option value="5">🗑️ Trash</option>
+            <option value="6" selected>📦 Other</option>
+        </select>
         <select id="task-assignee"><option value="">Anyone (Unassigned)</option></select>
         <p style="font-size:13px; color:gray; margin:0 0 5px 5px;">Deadline (Optional)</p>
         <input type="date" id="task-due-date">
         <button class="btn btn-solid" style="margin-top:15px;" onclick="executeCreateTask()">Save Task</button>
+    </div>
+</div>
+
+<div class="modal-overlay" id="recurring-task-modal">
+    <div class="modal" id="recurring-task-content">
+        <div class="modal-header"><span style="color: var(--ios-blue); cursor: pointer;" onclick="closeModal('recurring-task-modal')">Cancel</span><span style="font-weight: 600;">Schedule Task</span><span></span></div>
+        <p style="font-size: 13px; color: gray; text-align: center;">Task will automatically recreate itself</p>
+        <input type="text" id="rec-task-title" placeholder="E.g. Clean the Bathroom">
+        <input type="text" id="rec-task-desc" placeholder="Details/Description (Optional)">
+        <select id="rec-task-category">
+            <option value="0">🧹 Vacuum</option>
+            <option value="1">🪣 Mop</option>
+            <option value="2">🚽 Toilet</option>
+            <option value="3">🍳 Kitchen</option>
+            <option value="4">🍽️ Dishes</option>
+            <option value="5">🗑️ Trash</option>
+            <option value="6" selected>📦 Other</option>
+        </select>
+        <select id="rec-task-assignee"><option value="">Anyone (Unassigned)</option></select>
+        <div style="display: flex; gap: 10px;">
+            <select id="rec-task-pattern" style="flex: 2;"><option value="1">Weekly</option><option value="2">Monthly</option><option value="0">Daily</option></select>
+            <input type="number" id="rec-task-interval" value="1" min="1" style="flex: 1;" placeholder="Every X">
+        </div>
+        <p style="font-size:13px; color:gray; margin:0 0 5px 5px;">Starting From</p>
+        <input type="date" id="rec-task-startdate">
+        <button class="btn btn-solid" style="margin-top: 10px;" onclick="executeRecurringTask()">Save Schedule</button>
     </div>
 </div>
 
@@ -170,7 +205,7 @@
 </div>
 
 <div class="modal-overlay" id="checkout-modal">
-    <div class="modal" id="checkout-modal-content">
+    <div class="modal" id="checkout-content">
         <div class="modal-header"><span style="color: var(--ios-blue); cursor: pointer;" onclick="closeModal('checkout-modal')">Cancel</span><span style="font-weight: 600;">Checkout</span><span></span></div>
         <input type="number" id="split-amount" class="input-huge" placeholder="$0.00"><button class="btn btn-solid" onclick="executeCheckout()">Finish & Split</button>
     </div>
@@ -193,7 +228,6 @@
     </div>
 </div>
 
-<!-- НОВЫЕ МОДАЛКИ (v1.1) -->
 <div class="modal-overlay" id="recurring-bill-modal">
     <div class="modal" id="recurring-bill-content">
         <div class="modal-header"><span style="color: var(--ios-blue); cursor: pointer;" onclick="closeModal('recurring-bill-modal')">Cancel</span><span style="font-weight: 600;">Add Subscription</span><span></span></div>
@@ -211,30 +245,28 @@
     </div>
 </div>
 
-<div class="modal-overlay" id="recurring-task-modal">
-    <div class="modal" id="recurring-task-content">
-        <div class="modal-header"><span style="color: var(--ios-blue); cursor: pointer;" onclick="closeModal('recurring-task-modal')">Cancel</span><span style="font-weight: 600;">Schedule Task</span><span></span></div>
-        <p style="font-size: 13px; color: gray; text-align: center;">Task will automatically recreate itself</p>
-        <input type="text" id="rec-task-title" placeholder="E.g. Clean the Bathroom">
-        <select id="rec-task-assignee"><option value="">Anyone (Unassigned)</option></select>
-        <div style="display: flex; gap: 10px;">
-            <select id="rec-task-pattern" style="flex: 2;"><option value="1">Weekly</option><option value="2">Monthly</option><option value="0">Daily</option></select>
-            <input type="number" id="rec-task-interval" value="1" min="1" style="flex: 1;" placeholder="Every X">
-        </div>
-        <p style="font-size:13px; color:gray; margin:0 0 5px 5px;">Starting From</p>
-        <input type="date" id="rec-task-startdate">
-        <button class="btn btn-solid" style="margin-top: 10px;" onclick="executeRecurringTask()">Save Schedule</button>
+<div class="modal-overlay" id="change-password-modal">
+    <div class="modal" id="change-password-content">
+        <div class="modal-header"><span style="color: var(--ios-blue); cursor: pointer;" onclick="closeModal('change-password-modal')">Cancel</span><span style="font-weight: 600;">Change Password</span><span></span></div>
+        <input type="password" id="cp-old" placeholder="Current Password">
+        <input type="password" id="cp-new" placeholder="New Password">
+        <input type="password" id="cp-confirm" placeholder="Confirm New Password">
+        <button class="btn btn-solid" style="margin-top: 15px;" onclick="executeChangePassword()">Save Password</button>
     </div>
 </div>
 
 <script>
     const API_URL = '/api';
-    let selectedCartItems = new Set(); // Теперь используем Set для удобного выбора чекбоксами
+    let selectedCartItems = new Set();
     let apartmentMembers = [];
+
+    // Иконки
     const CATEGORY_ICONS = ['🛒', '🏠', '💡', '🌐', '🧼', '📦'];
     const UNIT_NAMES = ['pcs', 'pkgs', 'btls', 'kg', 'g', 'L', 'ml'];
     const LOCATIONS = ['❄️ Fridge', '🧊 Freezer', '🥫 Pantry', '🛁 Bathroom', '📦 Other'];
     const INV_CATEGORIES = ['🥦 Food', '🧻 Household', '🧴 Hygiene', '📦 Other'];
+    const CHORE_CAT_ICONS = ['🧹', '🪣', '🚽', '🍳', '🍽️', '🗑️', '📦']; // Новые иконки для задач
+
     let currentTaskMode = 'active';
     let currentTargetStatus = 0;
 
@@ -345,12 +377,11 @@
     }
 
     // ==========================================
-    // 1. ФИНАНСЫ (Исправленная загрузка)
+    // 1. ФИНАНСЫ
     // ==========================================
     async function loadFinance() {
         if (!getAptId()) return;
 
-        // Блок 1: Балансы
         try {
             document.getElementById('balance-list').innerHTML = "Loading balances...";
             const balances = await apiFetch(`/Expenses/balance/${getAptId()}`);
@@ -369,7 +400,6 @@
             }
         } catch(e) { console.error("Balance Error:", e); }
 
-        // Блок 2: Подписки
         try {
             const recEl = document.getElementById('recurring-expenses-list');
             if (recEl) {
@@ -383,7 +413,6 @@
             }
         } catch(e) { console.error("Subscriptions Error:", e); }
 
-        // Блок 3: История Чеков
         try {
             document.getElementById('expenses-list').innerHTML = "Loading history...";
             const expenses = await apiFetch(`/Expenses/${getAptId()}`);
@@ -395,7 +424,6 @@
         } catch(e) { console.error("History Error:", e); }
     }
 
-    // Экшены финансов
     async function executeCustomBill() {
         const amount = document.getElementById('bill-amount').value;
         const desc = document.getElementById('bill-desc').value || 'Custom Bill';
@@ -456,14 +484,12 @@
     async function consumeItem(itemId) { if(confirm("Mark as consumed?")) { await apiFetch('/Inventory/consume', 'POST', { itemId: itemId, apartmentId: getAptId(), userId: "ignored" }); loadInventory(); } }
     async function moveToCart(itemId) { await apiFetch('/Inventory/move-to-cart', 'POST', { itemId, apartmentId: getAptId(), userId: "ignored" }); loadInventory(); }
 
-    // --- НОВАЯ КОРЗИНА ПОКУПОК ---
     async function loadShopping() {
         if (!getAptId()) return;
         document.getElementById('cart-list').innerHTML = "Loading cart...";
         try {
             const items = await apiFetch(`/Inventory/${getAptId()}?status=2`);
             if (items && items.length > 0) {
-                // По умолчанию выделяем все товары при загрузке
                 selectedCartItems.clear();
                 items.forEach(i => selectedCartItems.add(i.id));
 
@@ -507,13 +533,10 @@
 
     async function executeCheckout() {
         if (selectedCartItems.size === 0) return alert("Select at least one item using the checkboxes!");
-
         const amount = document.getElementById('split-amount').value;
         if (!amount || amount <= 0) return alert("Enter valid amount!");
 
-        // Превращаем Set в обычный массив для бэкенда
         const itemIdsArray = Array.from(selectedCartItems);
-
         const res = await apiFetch('/Inventory/checkout', 'POST', { apartmentId: getAptId(), totalAmount: parseFloat(amount), itemIds: itemIdsArray, payerId: "ignored" });
         if (res) {
             closeModal('checkout-modal');
@@ -547,7 +570,11 @@
         if (currentTaskMode === 'schedules') {
             const schedules = await apiFetch(`/Chores/recurring/${getAptId()}`);
             if (schedules) {
-                document.getElementById('tasks-list').innerHTML = schedules.map(s => `<div class="list-item"><div class="item-info"><h4>🔄 ${s.title}</h4><p>${s.assignedName ? `Auto-assigned to: ${s.assignedName}` : 'Auto-assigns to Anyone'}</p><span style="color:var(--ios-blue); font-size:12px; font-weight:bold;">${getRecurrenceText(s.pattern, s.interval)} (Next: ${new Date(s.nextRunDate).toLocaleDateString()})</span></div></div>`).join('') || `<p style='text-align:center; color:gray'>No active schedules</p>`;
+                document.getElementById('tasks-list').innerHTML = schedules.map(s => {
+                    let icon = CHORE_CAT_ICONS[s.category] || '📦';
+                    let descHtml = s.description ? `<p style="font-size:12px; margin-top:2px;">${s.description}</p>` : '';
+                    return `<div class="list-item"><div class="item-info"><h4>${icon} 🔄 ${s.title}</h4>${descHtml}<p>${s.assignedName ? `Auto-assigned to: ${s.assignedName}` : 'Auto-assigns to Anyone'}</p><span style="color:var(--ios-blue); font-size:12px; font-weight:bold;">${getRecurrenceText(s.pattern, s.interval)} (Next: ${new Date(s.nextRunDate).toLocaleDateString()})</span></div></div>`
+                }).join('') || `<p style='text-align:center; color:gray'>No active schedules</p>`;
             }
             return;
         }
@@ -556,7 +583,9 @@
         if (tasks) {
             const filteredTasks = tasks.filter(t => currentTaskMode === 'active' ? t.status !== 2 : t.status === 2);
             document.getElementById('tasks-list').innerHTML = filteredTasks.map(t => {
+                let icon = CHORE_CAT_ICONS[t.category] || '📦';
                 let dueHtml = t.dueDate ? `<span style="color:var(--ios-red); font-size:12px; font-weight:bold; display:block; margin-top:4px;">⏳ Due: ${new Date(t.dueDate).toLocaleDateString()}</span>` : '';
+                let descHtml = t.description ? `<p style="font-size:12px; margin-top:2px;">${t.description}</p>` : '';
                 let actionHtml = '';
 
                 if (t.status === 0) {
@@ -569,30 +598,85 @@
                     actionHtml = `<span style="color:var(--ios-green); font-weight:bold; font-size:14px;">Completed ✓</span>`;
                 }
 
-                return `<div class="list-item ${t.status === 2 ? 'chore-done' : ''}"><div class="item-info"><h4>${t.title}</h4><p>${t.assignedName ? `Assigned to: ${t.assignedName}` : 'Anyone can do it'}</p>${dueHtml}</div>${actionHtml}</div>`;
+                return `<div class="list-item ${t.status === 2 ? 'chore-done' : ''}"><div class="item-info"><h4>${icon} ${t.title}</h4>${descHtml}<p>${t.assignedName ? `Assigned to: ${t.assignedName}` : 'Anyone can do it'}</p>${dueHtml}</div>${actionHtml}</div>`;
             }).join('') || `<p style='text-align:center; color:gray'>No ${currentTaskMode} tasks</p>`;
         }
     }
 
     async function executeCreateTask() {
         const title = document.getElementById('task-title').value;
+        const desc = document.getElementById('task-desc').value;
+        const category = document.getElementById('task-category').value;
         const dueDate = document.getElementById('task-due-date').value;
         if (!title) return alert("Enter task title");
-        const res = await apiFetch('/Chores', 'POST', { apartmentId: getAptId(), title: title, assignedUserId: document.getElementById('task-assignee').value || null, dueDate: dueDate ? new Date(dueDate).toISOString() : null, userId: "ignored" });
-        if (res) { closeModal('add-task-modal'); document.getElementById('task-title').value = ''; loadTasks(); }
+
+        const res = await apiFetch('/Chores', 'POST', {
+            apartmentId: getAptId(),
+            title: title,
+            description: desc || null,
+            category: parseInt(category),
+            assignedUserId: document.getElementById('task-assignee').value || null,
+            dueDate: dueDate ? new Date(dueDate).toISOString() : null,
+            userId: "ignored"
+        });
+
+        if (res) {
+            closeModal('add-task-modal');
+            document.getElementById('task-title').value = '';
+            document.getElementById('task-desc').value = '';
+            loadTasks();
+        }
     }
 
     async function executeRecurringTask() {
         const title = document.getElementById('rec-task-title').value;
+        const desc = document.getElementById('rec-task-desc').value;
+        const category = document.getElementById('rec-task-category').value;
         const startDate = document.getElementById('rec-task-startdate').value;
         if (!title || !startDate) return alert("Title and Start Date are required!");
-        const res = await apiFetch('/Chores/recurring', 'POST', { apartmentId: getAptId(), title: title, assignedUserId: document.getElementById('rec-task-assignee').value || null, pattern: parseInt(document.getElementById('rec-task-pattern').value), interval: parseInt(document.getElementById('rec-task-interval').value) || 1, startDate: new Date(startDate).toISOString() });
+
+        const res = await apiFetch('/Chores/recurring', 'POST', {
+            apartmentId: getAptId(),
+            title: title,
+            description: desc || null,
+            category: parseInt(category),
+            assignedUserId: document.getElementById('rec-task-assignee').value || null,
+            pattern: parseInt(document.getElementById('rec-task-pattern').value),
+            interval: parseInt(document.getElementById('rec-task-interval').value) || 1,
+            startDate: new Date(startDate).toISOString()
+        });
+
         if (res) { closeModal('recurring-task-modal'); switchTaskMode('schedules'); }
     }
 
     async function completeTask(taskId) { await apiFetch(`/Chores/${taskId}/complete`, 'POST', { apartmentId: getAptId(), choreId: taskId, userId: "ignored" }); loadTasks(); }
     async function confirmTask(taskId) { await apiFetch(`/Chores/${taskId}/confirm`, 'POST', { apartmentId: getAptId(), choreId: taskId, userId: "ignored" }); loadTasks(); }
     async function rejectTask(taskId) { if(confirm("Tell them to do it again? This issues a $5 penalty!")) { await apiFetch(`/Chores/${taskId}/reject`, 'POST', { apartmentId: getAptId(), choreId: taskId, userId: "ignored" }); loadTasks(); loadFinance(); } }
+
+    // --- НОВАЯ ФУНКЦИЯ ДЛЯ ПАРОЛЯ ---
+    async function executeChangePassword() {
+        const oldPass = document.getElementById('cp-old').value;
+        const newPass = document.getElementById('cp-new').value;
+        const confirmPass = document.getElementById('cp-confirm').value;
+
+        if (!oldPass || !newPass) return alert("Please fill all fields");
+        if (newPass !== confirmPass) return alert("New passwords do not match!");
+        if (newPass.length < 6) return alert("Password must be at least 6 characters");
+
+        const res = await apiFetch('/Users/change-password', 'POST', {
+            oldPassword: oldPass,
+            newPassword: newPass,
+            userId: "ignored"
+        });
+
+        if (res !== null) {
+            alert("Password changed successfully!");
+            closeModal('change-password-modal');
+            document.getElementById('cp-old').value = '';
+            document.getElementById('cp-new').value = '';
+            document.getElementById('cp-confirm').value = '';
+        }
+    }
 
     // --- AUTH & INIT ---
     async function register() {

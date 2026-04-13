@@ -10,7 +10,7 @@ namespace CoLivingApp.Application.Features.Chores;
 public record GetChoresQuery(Guid ApartmentId, string CurrentUserId) : IRequest<Result<List<ChoreDto>>>;
 
 // ДОБАВИЛИ CanComplete и CanReview
-public record ChoreDto(Guid Id, string Title, int Status, DateTime? DueDate, string? AssignedName, bool CanComplete, bool CanReview);
+public record ChoreDto(Guid Id, string Title, string? Description, int Category, int Status, DateTime? DueDate, string? AssignedName, bool CanComplete, bool CanReview);
 
 public class GetChoresQueryHandler : IRequestHandler<GetChoresQuery, Result<List<ChoreDto>>>
 {
@@ -30,6 +30,8 @@ public class GetChoresQueryHandler : IRequestHandler<GetChoresQuery, Result<List
         var dtos = chores.Select(c => new ChoreDto(
             c.Id, 
             c.Title, 
+            c.Description, // Добавили
+            (int)c.Category, // Добавили (конвертируем в int для фронтенда)
             (int)c.Status,
             c.DueDate,
             c.AssignedUser != null ? c.AssignedUser.Name : null,

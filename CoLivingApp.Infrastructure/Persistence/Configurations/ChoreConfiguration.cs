@@ -10,12 +10,11 @@ public class ChoreConfiguration : IEntityTypeConfiguration<Chore>
     {
         builder.HasKey(c => c.Id);
 
-        // Конвертируем Enum статуса в удобный текст для БД
-        builder.Property(c => c.Status)
-            .HasConversion<string>()
-            .HasMaxLength(50);
-            
-        // Принудительно ограничиваем длину названия задачи
+        builder.Property(c => c.Status).HasConversion<string>().HasMaxLength(50);
         builder.Property(c => c.Title).HasMaxLength(200);
+
+        // НОВЫЕ ПРАВИЛА 👇
+        builder.Property(c => c.Category).HasConversion<string>().HasMaxLength(50);
+        builder.Property(c => c.Description).HasMaxLength(500); // Ограничим длину описания
     }
 }

@@ -7,8 +7,7 @@ namespace CoLivingApp.Application.Features.Chores;
 
 public record GetRecurringChoresQuery(Guid ApartmentId) : IRequest<Result<List<RecurringChoreDto>>>;
 
-public record RecurringChoreDto(Guid Id, string Title, string? AssignedName, int Pattern, int Interval, DateTime NextRunDate);
-
+public record RecurringChoreDto(Guid Id, string Title, string? Description, int Category, string? AssignedName, int Pattern, int Interval, DateTime NextRunDate);
 public class GetRecurringChoresQueryHandler : IRequestHandler<GetRecurringChoresQuery, Result<List<RecurringChoreDto>>>
 {
     private readonly IApplicationDbContext _context;
@@ -21,7 +20,14 @@ public class GetRecurringChoresQueryHandler : IRequestHandler<GetRecurringChores
             .Include(c => c.AssignedUser)
             .Where(c => c.ApartmentId == request.ApartmentId && c.IsActive)
             .Select(c => new RecurringChoreDto(
-                c.Id, c.Title, c.AssignedUser != null ? c.AssignedUser.Name : null, (int)c.Pattern, c.Interval, c.NextRunDate
+                c.Id, 
+                c.Title, 
+                c.Description,       // <--- Добавили
+                (int)c.Category,     // <--- Добавили
+                c.AssignedUser != null ? c.AssignedUser.Name : null, 
+                (int)c.Pattern, 
+                c.Interval, 
+                c.NextRunDate
             )).ToListAsync(cancellationToken);
 
         return Result<List<RecurringChoreDto>>.Success(schedules);

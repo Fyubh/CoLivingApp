@@ -85,6 +85,8 @@ public class SchedulerBackgroundService : BackgroundService
             ApartmentId = template.ApartmentId,
             Title = $"🔄 {template.Title}", // Помечаем как регулярную!
             AssignedUserId = template.AssignedUserId,
+            Description = template.Description,
+            Category = template.Category,
             Status = ChoreStatus.Pending,
             DueDate = template.NextRunDate // Дедлайн - реальная дата из шаблона
         };

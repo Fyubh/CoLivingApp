@@ -62,10 +62,5 @@ public class ChoresController : ControllerBase
         var result = await _mediator.Send(command);
         return result.IsSuccess ? Ok(new { id = result.Value }) : BadRequest(new { error = result.Error });
     }
-    [HttpGet("recurring/{apartmentId}")]
-    public async Task<IActionResult> GetRecurring(Guid apartmentId)
-    {
-        var result = await _mediator.Send(new GetRecurringChoresQuery(apartmentId));
-        return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
-    }
+    
 }

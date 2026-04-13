@@ -16,4 +16,6 @@ public class RecurringChore
 
     public Apartment? Apartment { get; set; }
     public User? AssignedUser { get; set; }
+    public string? Description { get; set; } 
+    public ChoreCategory Category { get; set; } = ChoreCategory.Other;
 }

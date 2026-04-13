@@ -6,9 +6,16 @@ using MediatR;
 
 namespace CoLivingApp.Application.Features.Chores;
 
+// 1. Добавили Description и Category сюда 👇
 public record CreateRecurringChoreCommand(
-    Guid ApartmentId, string Title, string? AssignedUserId, 
-    RecurrencePattern Pattern, int Interval, DateTime StartDate
+    Guid ApartmentId, 
+    string Title, 
+    string? Description, 
+    int Category, 
+    string? AssignedUserId, 
+    RecurrencePattern Pattern, 
+    int Interval, 
+    DateTime StartDate
 ) : IRequest<Result<Guid>>;
 
 public class CreateRecurringChoreCommandHandler : IRequestHandler<CreateRecurringChoreCommand, Result<Guid>>
@@ -24,6 +31,8 @@ public class CreateRecurringChoreCommandHandler : IRequestHandler<CreateRecurrin
         {
             ApartmentId = request.ApartmentId,
             Title = request.Title,
+            Description = request.Description,             // Теперь компилятор это видит
+            Category = (ChoreCategory)request.Category,    // И это тоже
             AssignedUserId = string.IsNullOrWhiteSpace(request.AssignedUserId) ? null : request.AssignedUserId,
             Pattern = request.Pattern,
             Interval = request.Interval,
