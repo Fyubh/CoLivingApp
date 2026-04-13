@@ -14,7 +14,12 @@ public class ChoresController : ControllerBase
     private readonly IMediator _mediator;
     public ChoresController(IMediator mediator) => _mediator = mediator;
 
-    // ... (Метод Create остается без изменений) ...
+    [HttpPost]
+    public async Task<IActionResult> Create([FromBody] CreateChoreCommand command)
+    {
+        var result = await _mediator.Send(command);
+        return result.IsSuccess ? Ok(new { choreId = result.Value }) : BadRequest(new { error = result.Error });
+    }
 
     [HttpPost("{id}/complete")]
     public async Task<IActionResult> Complete(Guid id, [FromBody] CompleteChoreCommand command)

@@ -65,4 +65,10 @@ public class ExpensesController : ControllerBase
         var result = await _mediator.Send(new GetExpensesQuery(apartmentId));
         return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
     }
+    [HttpGet("settlements/{apartmentId}")]
+    public async Task<IActionResult> GetSettlements(Guid apartmentId)
+    {
+        var result = await _mediator.Send(new CoLivingApp.Application.Features.Expenses.Queries.GetSettlements.GetSettlementsQuery(apartmentId));
+        return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
+    }
 }

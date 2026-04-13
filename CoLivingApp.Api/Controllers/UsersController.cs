@@ -1,8 +1,11 @@
 // Файл: CoLivingApp.Api/Controllers/UsersController.cs
+
+using System.Security.Claims;
 using CoLivingApp.Application.Features.Users.Commands.CreateUser;
 using CoLivingApp.Application.Features.Inventory.Commands.RemoveItem;
 using CoLivingApp.Application.Features.Inventory.Commands.MoveToCart;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CoLivingApp.Api.Controllers;
@@ -47,5 +50,15 @@ public class UsersController : ControllerBase
         if (itemId != command.ItemId) return BadRequest();
         var result = await _mediator.Send(command);
         return result.IsSuccess ? Ok() : BadRequest(result.Error);
+    }
+    [Authorize]
+    [HttpPost("change-password")]
+    public async Task<IActionResult> ChangePassword([FromBody] CoLivingApp.Application.Features.Users.Commands.Auth.ChangePasswordCommand command)
+    {
+        var userId = User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier);
+        var secureCommand = command with { UserId = userId! };
+        
+        var result = await _mediator.Send(secureCommand);
+        return result.IsSuccess ? Ok() : BadRequest(new { error = result.Error });
     }
 }

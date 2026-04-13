@@ -7,6 +7,17 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// --- 1. ДОБАВЛЯЕМ СЕРВИС CORS ---
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.AllowAnyOrigin()  // Разрешает запросы с любых портов и доменов
+            .AllowAnyMethod()  // Разрешает GET, POST, PUT, DELETE
+            .AllowAnyHeader(); // Разрешает любые заголовки (очень важно для передачи токена Authorization!)
+    });
+});
+
 // ==========================================
 // 1. РЕГИСТРАЦИЯ СЕРВИСОВ (Dependency Injection)
 // ==========================================
@@ -44,26 +55,28 @@ builder.Services.AddSwaggerGen();
 // Собираем приложение
 var app = builder.Build();
 
-// ==========================================
-// 2. НАСТРОЙКА MIDDLEWARE (Пайплайн запросов)
-// ==========================================
+// 1. Отдаем статические файлы (твой index.html) в самом начале!
+app.UseDefaultFiles();
+app.UseStaticFiles();
 
+// 2. Swagger для тестирования API
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
-app.UseDefaultFiles();
+// ВНИМАНИЕ: app.UseHttpsRedirection() УДАЛЕН, чтобы не ломать локальные запросы по HTTP!
 
-app.UseStaticFiles();
-    
-app.UseHttpsRedirection();
+// 3. CORS (Разрешаем кросс-доменные запросы)
+app.UseCors("AllowAll");
 
+// 4. Аутентификация и Авторизация (СТРОГО в таком порядке)
+app.UseAuthentication();
 app.UseAuthorization();
 
+// 5. Маппинг контроллеров и сокетов
 app.MapControllers();
-
 app.MapHub<CoLivingApp.Api.Hubs.CoLivingHub>("/hubs/coliving");
 
 app.Run();

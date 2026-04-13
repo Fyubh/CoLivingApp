@@ -80,8 +80,14 @@
 <div id="view-tasks" class="section">
     <div class="page-header"><h1 class="page-title">Tasks</h1></div>
     <div class="container">
+
+        <div style="display:flex; margin-bottom:15px; background:#E5E5EA; border-radius:8px; padding:2px;">
+            <div id="tab-active-btn" style="flex:1; text-align:center; padding:8px; background:var(--ios-card); border-radius:6px; font-weight:600; font-size:14px; cursor:pointer; color:var(--text-main); transition: 0.2s;" onclick="switchTaskMode('active')">Active</div>
+            <div id="tab-history-btn" style="flex:1; text-align:center; padding:8px; color:gray; font-weight:600; font-size:14px; cursor:pointer; transition: 0.2s;" onclick="switchTaskMode('history')">History</div>
+        </div>
+
         <div class="card" id="tasks-list">Loading...</div>
-        <button class="btn btn-primary" onclick="openModal('add-task-modal')">+ Add Task</button>
+        <button class="btn btn-primary" id="btn-add-task" onclick="openModal('add-task-modal')">+ Add Task</button>
     </div>
 </div>
 
@@ -118,7 +124,6 @@
     <div class="tab-item active" onclick="switchTab('settings', this)"><i class="bi bi-gear-fill"></i>Settings</div>
 </div>
 
-
 <div class="modal-overlay" id="add-task-modal">
     <div class="modal" id="add-task-content">
         <div class="modal-header">
@@ -130,10 +135,8 @@
         <select id="task-assignee">
             <option value="">Anyone (Unassigned)</option>
         </select>
-
         <p style="text-align:center; font-size:14px; color:gray; margin:10px 0 5px 0;">Deadline (Optional)</p>
         <input type="date" id="task-due-date">
-
         <button class="btn btn-solid" style="margin-top:15px;" onclick="executeCreateTask()">Save Task</button>
     </div>
 </div>
@@ -188,12 +191,12 @@
         <select id="bill-category">
             <option value="0">🛒 Groceries</option>
             <option value="1">🏠 Rent</option>
-            <option value="2">💡 Utilities (Water, Power)</option>
+            <option value="2">💡 Utilities</option>
             <option value="3">🌐 Internet</option>
             <option value="4">🧼 Household</option>
             <option value="5">📦 Other</option>
         </select>
-        <input type="text" id="bill-desc" placeholder="Brief description (e.g. WiFi May)">
+        <input type="text" id="bill-desc" placeholder="Brief description">
         <input type="number" id="bill-amount" class="input-huge" placeholder="$0.00">
         <button class="btn btn-solid" onclick="executeCustomBill()">Add & Split</button>
     </div>
@@ -343,7 +346,7 @@
     }
 
     // --- 2. ИНВЕНТАРЬ И КОРЗИНА (ОБЩАЯ ЛОГИКА) ---
-    let currentTargetStatus = 0;
+    let currentTargetStatus = 0; // 0 = Inventory, 2 = Cart
 
     function openAddProductModal(status) {
         currentTargetStatus = status;
@@ -426,25 +429,37 @@
         closeModal('checkout-modal'); document.getElementById('split-amount').value = ''; switchTab('finance', document.querySelectorAll('.tab-item')[0]);
     }
 
-    // --- 4. ЗАДАЧИ (ПОЛНОСТЬЮ ОБНОВЛЕННЫЕ) ---
+    // --- 4. ЗАДАЧИ (С ИСТОРИЕЙ И ШТРАФАМИ) ---
+    let currentTaskMode = 'active';
+
+    function switchTaskMode(mode) {
+        currentTaskMode = mode;
+        document.getElementById('tab-active-btn').style.background = mode === 'active' ? 'var(--ios-card)' : 'transparent';
+        document.getElementById('tab-active-btn').style.color = mode === 'active' ? 'var(--text-main)' : 'gray';
+        document.getElementById('tab-history-btn').style.background = mode === 'history' ? 'var(--ios-card)' : 'transparent';
+        document.getElementById('tab-history-btn').style.color = mode === 'history' ? 'var(--text-main)' : 'gray';
+        document.getElementById('btn-add-task').style.display = mode === 'active' ? 'block' : 'none';
+
+        loadTasks();
+    }
+
     async function loadTasks() {
         if (!getAptId()) return;
         const tasks = await apiFetch(`/Chores/${getAptId()}`);
         if (tasks) {
-            document.getElementById('tasks-list').innerHTML = tasks.map(t => {
-                // Красиво форматируем дедлайн, если он есть
-                let dueHtml = t.dueDate ? `<span style="color:var(--ios-red); font-size:12px; font-weight:bold; display:block; margin-top:4px;">⏳ Due: ${new Date(t.dueDate).toLocaleDateString()}</span>` : '';
+            const filteredTasks = tasks.filter(t => currentTaskMode === 'active' ? t.status !== 2 : t.status === 2);
 
+            document.getElementById('tasks-list').innerHTML = filteredTasks.map(t => {
+                let dueHtml = t.dueDate ? `<span style="color:var(--ios-red); font-size:12px; font-weight:bold; display:block; margin-top:4px;">⏳ Due: ${new Date(t.dueDate).toLocaleDateString()}</span>` : '';
                 let actionHtml = '';
 
-                if (t.status === 0) { // Pending
+                if (t.status === 0) {
                     if (t.canComplete) {
                         actionHtml = `<button class="btn-action" style="background:#E5E5EA;" onclick="completeTask('${t.id}')">Done ✓</button>`;
                     } else {
-                        // Если чужая задача
                         actionHtml = `<span style="font-size:12px; color:gray;">In Progress</span>`;
                     }
-                } else if (t.status === 1) { // Needs Review
+                } else if (t.status === 1) {
                     if (t.canReview) {
                         actionHtml = `
                             <div style="display:flex; flex-direction:column; gap:5px;">
@@ -455,43 +470,48 @@
                                 </div>
                             </div>`;
                     } else {
-                        // Если это ТЫ выполнил задачу и ждешь оценки
                         actionHtml = `<span style="font-size:12px; color:#FF9500; font-weight:bold; text-align:center;">Waiting for<br>approval ⏳</span>`;
                     }
-                } else { // Completed
-                    actionHtml = `<span style="color:var(--ios-green); font-weight:bold; font-size:14px;">Completed</span>`;
+                } else {
+                    actionHtml = `<span style="color:var(--ios-green); font-weight:bold; font-size:14px;">Completed ✓</span>`;
                 }
 
-                return `
-                <div class="list-item ${t.status === 2 ? 'chore-done' : ''}">
-                    <div class="item-info">
-                        <h4>${t.title}</h4>
-                        <p>${t.assignedName ? `Assigned to: ${t.assignedName}` : 'Anyone can do it'}</p>
-                        ${dueHtml}
-                    </div>
+                return `<div class="list-item ${t.status === 2 ? 'chore-done' : ''}">
+                    <div class="item-info"><h4>${t.title}</h4><p>${t.assignedName ? `Assigned to: ${t.assignedName}` : 'Anyone can do it'}</p>${dueHtml}</div>
                     ${actionHtml}
                 </div>`;
-            }).join('') || "<p style='text-align:center; color:gray'>No tasks yet</p>";
+            }).join('') || `<p style='text-align:center; color:gray'>No ${currentTaskMode} tasks</p>`;
         }
     }
 
     async function executeCreateTask() {
         const title = document.getElementById('task-title').value;
-        const dueDate = document.getElementById('task-due-date').value; // Берем дату из инпута
+        const dateInput = document.getElementById('task-due-date');
+        const dueDate = dateInput ? dateInput.value : null;
 
         if (!title) return alert("Enter a task title");
 
-        await apiFetch('/Chores', 'POST', {
+        // Формируем безопасный JSON-объект
+        const requestBody = {
             apartmentId: getAptId(),
             title: title,
-            assignedUserId: document.getElementById('task-assignee').value,
-            dueDate: dueDate ? new Date(dueDate).toISOString() : null // Отправляем на бэк
-        });
+            // Если выбран "Anyone", жестко передаем null, чтобы БД не ругалась на пустой ID
+            assignedUserId: document.getElementById('task-assignee').value || null,
+            // Безопасно парсим дату или передаем null
+            dueDate: dueDate ? new Date(dueDate).toISOString() : null,
+            // На всякий случай передаем заглушку, вдруг бэкенд её ждет
+            userId: "ignored"
+        };
 
-        closeModal('add-task-modal');
-        document.getElementById('task-title').value = '';
-        document.getElementById('task-due-date').value = '';
-        loadTasks();
+        const res = await apiFetch('/Chores', 'POST', requestBody);
+
+        // Закрываем модалку и обновляем список ТОЛЬКО если сервер ответил успехом
+        if (res) {
+            closeModal('add-task-modal');
+            document.getElementById('task-title').value = '';
+            if (dateInput) dateInput.value = '';
+            loadTasks();
+        }
     }
 
     async function completeTask(taskId) {
@@ -513,13 +533,14 @@
     }
 
     async function rejectTask(taskId) {
-        if(confirm("Tell them to do it again?")) {
+        if(confirm("Tell them to do it again? This will automatically issue a $5 penalty to their balance!")) {
             await apiFetch(`/Chores/${taskId}/reject`, 'POST', {
                 apartmentId: getAptId(),
                 choreId: taskId,
                 userId: "ignored"
             });
             loadTasks();
+            loadFinance();
         }
     }
 
