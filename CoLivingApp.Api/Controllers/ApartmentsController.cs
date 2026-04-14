@@ -1,5 +1,6 @@
 using CoLivingApp.Application.Features.Apartments.Commands.CreateApartment;
 using CoLivingApp.Application.Features.Apartments.Commands.JoinApartment;
+using CoLivingApp.Application.Features.Apartments.Commands.LeaveApartment;
 using CoLivingApp.Application.Features.Apartments.Queries.GetApartment;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -36,7 +37,17 @@ public class ApartmentsController : ControllerBase
         var result = await _mediator.Send(secureCommand);
         return result.IsSuccess ? Ok(new { apartmentId = result.Value }) : BadRequest(new { error = result.Error });
     }
-    
+
+    [HttpPost("leave")]
+    public async Task<IActionResult> Leave([FromBody] LeaveApartmentCommand command)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var secureCommand = command with { UserId = userId! };
+
+        var result = await _mediator.Send(secureCommand);
+        return result.IsSuccess ? Ok() : BadRequest(new { error = result.Error });
+    }
+
     [HttpGet("{id}")]
     public async Task<IActionResult> Get(Guid id)
     {
