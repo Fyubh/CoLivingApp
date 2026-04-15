@@ -17,6 +17,7 @@ public interface IApplicationDbContext
     DbSet<Chore> Chores { get; }
     DbSet<RecurringExpense> RecurringExpenses { get; }
     DbSet<RecurringChore> RecurringChores { get; }
+    DbSet<ChatMessage> ChatMessages { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }

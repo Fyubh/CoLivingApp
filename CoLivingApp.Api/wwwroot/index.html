@@ -1,398 +1,646 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Co-Living App</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Co-Living App (iOS 26 Concept)</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.12/signalr.min.js"></script>
     <style>
         :root {
             --ios-bg: #F2F2F7;
-            --ios-card: #FFFFFF;
+            --ios-card: rgba(255, 255, 255, 0.65);
+            --ios-card-solid: #FFFFFF;
             --ios-blue: #007AFF;
+            --ios-blue-glow: rgba(0, 122, 255, 0.4);
             --ios-green: #34C759;
             --ios-red: #FF3B30;
             --ios-orange: #FF9500;
-            --ios-yellow: #FFCC00;
+            --ios-purple: #AF52DE;
             --text-main: #000000;
             --text-muted: #8E8E93;
+            --glass-border: rgba(255, 255, 255, 0.4);
         }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--ios-bg); color: var(--text-main); margin: 0; padding-bottom: 90px; -webkit-font-smoothing: antialiased; }
-        .page-header { padding: 40px 20px 10px 20px; background: var(--ios-bg); position: sticky; top: 0; z-index: 10; }
-        .page-title { font-size: 34px; font-weight: 800; margin: 0; letter-spacing: -1px; }
-        .container { padding: 0 16px; }
-        .section { display: none; animation: fade 0.2s ease-in-out; }
-        .section.active { display: block; }
-        @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
-        .card { background: var(--ios-card); border-radius: 20px; padding: 16px; margin-bottom: 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); }
-        .list-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #E5E5EA; }
-        .list-item:last-child { border-bottom: none; padding-bottom: 0; }
-        .item-info h4 { margin: 0 0 4px 0; font-size: 17px; }
-        .item-info p { margin: 0; font-size: 13px; color: var(--text-muted); }
-        .btn { width: 100%; padding: 16px; border: none; border-radius: 14px; font-size: 17px; font-weight: 600; cursor: pointer; margin-bottom: 10px; }
-        .btn-primary { background: #E5F1FF; color: var(--ios-blue); }
-        .btn-solid { background: var(--ios-blue); color: white; }
-        .btn-action { padding: 8px 16px; border-radius: 20px; font-size: 14px; border: none; font-weight: 600; cursor: pointer; }
-        .btn-green { background: #E8F8EE; color: var(--ios-green); }
-        .btn-red { background: #FFEBEA; color: var(--ios-red); }
-        .tab-bar { position: fixed; bottom: 0; width: 100%; background: rgba(255,255,255,0.9); backdrop-filter: blur(10px); display: flex; justify-content: space-around; padding: 10px 0 20px 0; border-top: 1px solid #E5E5EA; z-index: 100; }
-        .tab-item { text-align: center; color: var(--text-muted); font-size: 10px; font-weight: 500; cursor: pointer; flex: 1; }
-        .tab-item.active { color: var(--text-main); }
-        .tab-item i { font-size: 24px; display: block; margin-bottom: 2px; }
-        .tab-item.active i { color: var(--ios-blue); }
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 200; }
-        .modal { position: absolute; bottom: 0; width: 100%; background: var(--ios-bg); border-radius: 30px 30px 0 0; padding: 20px; box-sizing: border-box; transition: transform 0.3s ease; transform: translateY(100%); }
-        .modal.open { transform: translateY(0); }
-        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        input, select { width: 100%; padding: 16px; margin-bottom: 12px; border: none; border-radius: 12px; background: var(--ios-card); font-size: 17px; box-sizing: border-box; }
-        .input-huge { font-size: 40px; font-weight: 800; text-align: center; background: transparent; padding: 10px; margin: 0; }
-        .chore-done h4 { text-decoration: line-through; color: var(--text-muted); }
-        .task-tab { flex: 1; text-align: center; padding: 8px; border-radius: 6px; font-weight: 600; font-size: 14px; cursor: pointer; color: gray; transition: 0.2s; }
-        .active-tab { background: var(--ios-card); color: var(--text-main); }
 
-        /* Expiry badges */
-        .expiry-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 700; margin-top: 3px; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+            background: var(--ios-bg);
+            background-image: radial-gradient(circle at 100% 0%, #E5F1FF 0%, transparent 40%),
+            radial-gradient(circle at 0% 100%, #F5E8FF 0%, transparent 40%);
+            background-attachment: fixed;
+            color: var(--text-main);
+            margin: 0;
+            padding-bottom: 120px;
+            padding-top: env(safe-area-inset-top);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .page-header { padding: 40px 20px 10px 20px; position: sticky; top: 0; z-index: 10; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); background: rgba(242, 242, 247, 0.7); border-bottom: 1px solid rgba(0,0,0,0.05); }
+        .page-title { font-size: 34px; font-weight: 800; margin: 0; letter-spacing: -1px; }
+
+        .container { padding: 0 16px; margin-top: 16px; }
+
+        .section { display: none; animation: fadeUp 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+        .section.active { display: block; }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Glassmorphism Cards */
+        .card {
+            background: var(--ios-card);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid var(--glass-border);
+            border-radius: 28px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.04);
+        }
+
+        .list-item { display: flex; align-items: center; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid rgba(0,0,0,0.05); }
+        .list-item:last-child { border-bottom: none; padding-bottom: 0; }
+        .item-info h4 { margin: 0 0 4px 0; font-size: 17px; font-weight: 600; }
+        .item-info p { margin: 0; font-size: 13px; color: var(--text-muted); }
+
+        /* Buttons */
+        .btn { width: 100%; padding: 16px; border: none; border-radius: 20px; font-size: 17px; font-weight: 700; cursor: pointer; margin-bottom: 10px; transition: transform 0.1s; }
+        .btn:active { transform: scale(0.97); }
+        .btn-primary { background: rgba(0, 122, 255, 0.1); color: var(--ios-blue); }
+        .btn-solid { background: linear-gradient(135deg, var(--ios-blue), #005bb5); color: white; box-shadow: 0 4px 15px var(--ios-blue-glow); }
+        .btn-action { padding: 8px 16px; border-radius: 20px; font-size: 14px; border: none; font-weight: 600; cursor: pointer; }
+        .btn-green { background: rgba(52, 199, 89, 0.15); color: #248A3D; }
+        .btn-red { background: rgba(255, 59, 48, 0.15); color: #C93400; }
+
+        /* Floating Tab Bar */
+        .tab-bar-container { position: fixed; bottom: 20px; left: 16px; right: 16px; z-index: 100; }
+        .tab-bar {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(30px) saturate(200%);
+            -webkit-backdrop-filter: blur(30px) saturate(200%);
+            border: 1px solid rgba(255,255,255,0.5);
+            border-radius: 35px;
+            display: flex; justify-content: space-around; padding: 12px 10px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+        .tab-item { text-align: center; color: var(--text-muted); font-size: 10px; font-weight: 600; cursor: pointer; flex: 1; transition: 0.2s; }
+        .tab-item.active { color: var(--ios-blue); transform: translateY(-2px); }
+        .tab-item i { font-size: 22px; display: block; margin-bottom: 4px; }
+
+        /* Top Segmented Control */
+        .segmented-control {
+            display: flex; background: rgba(0,0,0,0.05); border-radius: 12px; padding: 3px; margin-bottom: 20px;
+            overflow-x: auto; scrollbar-width: none;
+        }
+        .segmented-control::-webkit-scrollbar { display: none; }
+        .seg-tab { flex: 1; text-align: center; padding: 8px 12px; border-radius: 10px; font-weight: 600; font-size: 14px; color: var(--text-muted); cursor: pointer; transition: 0.3s; white-space: nowrap; }
+        .seg-tab.active { background: var(--ios-card-solid); color: var(--text-main); box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+
+        /* Modals */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); backdrop-filter: blur(5px); z-index: 200; }
+        .modal { position: absolute; bottom: 0; width: 100%; background: var(--ios-bg); border-radius: 35px 35px 0 0; padding: 25px 20px env(safe-area-inset-bottom) 20px; box-sizing: border-box; transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1); transform: translateY(100%); }
+        .modal.open { transform: translateY(0); }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
+
+        input, select { width: 100%; padding: 18px; margin-bottom: 12px; border: 1px solid rgba(0,0,0,0.05); border-radius: 16px; background: var(--ios-card-solid); font-size: 17px; box-sizing: border-box; font-family: inherit; }
+        .input-huge { font-size: 44px; font-weight: 800; text-align: center; background: transparent; border: none; padding: 10px; margin: 0; }
+
+        /* Specific Elements */
+        .section-label { font-size: 14px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin: 25px 0 10px 16px; }
+        .chore-done h4 { text-decoration: line-through; color: var(--text-muted); }
+
+        .expiry-badge { display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 700; margin-top: 5px; }
         .expiry-critical { background: #FFEBEA; color: var(--ios-red); }
         .expiry-warning { background: #FFF3CD; color: #856404; }
         .expiry-ok { background: #E8F8EE; color: var(--ios-green); }
 
-        /* Settlement history */
-        .settlement-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #E5E5EA; }
+        .settlement-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid rgba(0,0,0,0.05); }
         .settlement-item:last-child { border-bottom: none; }
 
-        /* Section sub-headers */
-        .section-label { font-size: 13px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin: 20px 0 8px 10px; }
+        /* Custom iOS 26 Concepts */
+        .digital-key {
+            background: linear-gradient(145deg, #007AFF, #AF52DE);
+            color: white;
+            height: 180px;
+            border-radius: 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 15px 35px rgba(175, 82, 222, 0.3);
+            cursor: pointer;
+            transition: transform 0.2s, filter 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+        .digital-key:active { transform: scale(0.95); filter: brightness(1.1); }
+        .digital-key i { font-size: 60px; margin-bottom: 10px; }
+        .digital-key-wave {
+            position: absolute; width: 300px; height: 300px; background: rgba(255,255,255,0.2);
+            border-radius: 50%; top: -50px; right: -50px; animation: pulse 3s infinite;
+        }
+        @keyframes pulse { 0% { transform: scale(0.8); opacity: 0; } 50% { opacity: 1; } 100% { transform: scale(1.5); opacity: 0; } }
+
+        .fab-ai {
+            position: fixed; bottom: 100px; right: 20px; width: 60px; height: 60px;
+            background: rgba(255,255,255,0.9); border-radius: 30px;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15); z-index: 90; font-size: 24px;
+            backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.5);
+            cursor: pointer; transition: 0.3s;
+        }
+        .fab-ai:active { transform: scale(0.9); }
+
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .service-card { background: var(--ios-card-solid); padding: 16px; border-radius: 20px; text-align: center; border: 1px solid rgba(0,0,0,0.05); }
+        .service-card i { font-size: 28px; color: var(--ios-blue); display: block; margin-bottom: 8px; }
+        .service-card span { font-size: 13px; font-weight: 600; }
+
+        .alert-card { background: rgba(255, 59, 48, 0.1); border-left: 4px solid var(--ios-red); padding: 12px 16px; border-radius: 12px; margin-bottom: 10px; display: flex; align-items: center; gap: 12px;}
+
+        .nudge-btn { background: var(--ios-card-solid); border: 1px solid rgba(0,0,0,0.05); padding: 12px; border-radius: 16px; font-weight: 600; flex: 1; text-align: center; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.02); transition: 0.1s;}
+        .nudge-btn:active { transform: scale(0.95); }
+
+        /* Auth Toggle */
+        .auth-toggle { display: flex; background: rgba(0,0,0,0.05); border-radius: 12px; padding: 4px; margin-bottom: 20px;}
+        .auth-toggle label { flex: 1; text-align: center; padding: 10px; border-radius: 8px; font-weight: 600; cursor: pointer; }
+        .auth-toggle input[type="radio"] { display: none; }
+        .auth-toggle input[type="radio"]:checked + label { background: white; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+
+        /* Chat iOS Style */
+        .chat-container { flex-grow: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+        .chat-container::-webkit-scrollbar { display: none; }
+        .msg-bubble { max-width: 75%; padding: 12px 16px; border-radius: 20px; font-size: 15px; position: relative; word-wrap: break-word; }
+        .msg-incoming { background: var(--ios-bg); border: 1px solid rgba(0,0,0,0.05); align-self: flex-start; border-bottom-left-radius: 4px; }
+        .msg-outgoing { background: var(--ios-blue); color: white; align-self: flex-end; border-bottom-right-radius: 4px; box-shadow: 0 4px 10px var(--ios-blue-glow); }
+        .msg-sender { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; font-weight: 600; }
     </style>
 </head>
 <body>
 
-<!-- ==================== FINANCE ==================== -->
-<div id="view-finance" class="section">
-    <div class="page-header"><h1 class="page-title">Finance</h1></div>
+<div id="view-home" class="section">
+    <div class="page-header"><h1 class="page-title">Главная</h1></div>
     <div class="container">
-        <div class="card" style="text-align: center;">
-            <p style="margin:0; color:var(--text-muted); font-size: 14px;">My Roommate Balances</p>
-            <div id="balance-list" style="margin: 15px 0;">Loading...</div>
-            <div style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;">
-                <button class="btn btn-primary" style="margin:0; flex: 1;" onclick="openModal('custom-bill-modal')">Add Bill</button>
-                <button class="btn btn-primary" style="margin:0; flex: 1;" onclick="openModal('recurring-bill-modal')">🔄 Subs</button>
-                <button class="btn btn-green" style="margin:0; flex: 1;" onclick="openModal('settle-debt-modal')">Settle</button>
+
+        <div class="digital-key" onclick="simulateDoorUnlock(this)">
+            <div class="digital-key-wave"></div>
+            <i class="bi bi-door-closed-fill" id="door-icon"></i>
+            <h2 style="margin:0; font-size: 22px;">Разблокировать</h2>
+            <p style="margin:5px 0 0 0; opacity: 0.8; font-size: 14px;">Комната & Общие зоны</p>
+        </div>
+
+        <h3 class="section-label">Уведомления</h3>
+        <div class="alert-card">
+            <i class="bi bi-exclamation-circle-fill" style="color: var(--ios-red); font-size: 20px;"></i>
+            <div>
+                <strong style="font-size: 14px; display: block;">Оплата аренды</strong>
+                <span style="font-size: 12px; color: var(--text-muted);">До 5-го числа ($500)</span>
+            </div>
+        </div>
+        <div class="alert-card" style="background: rgba(255, 149, 0, 0.1); border-left-color: var(--ios-orange);">
+            <i class="bi bi-bell-fill" style="color: var(--ios-orange); font-size: 20px;"></i>
+            <div>
+                <strong style="font-size: 14px; display: block;">Проверка счетчиков</strong>
+                <span style="font-size: 12px; color: var(--text-muted);">Завтра в 12:00</span>
             </div>
         </div>
 
-        <h3 class="section-label">🔄 Active Subscriptions</h3>
-        <div class="card" id="recurring-expenses-list">Loading...</div>
-
-        <h3 class="section-label">📋 Payment History</h3>
-        <div class="card" id="settlements-list">Loading...</div>
-
-        <h3 class="section-label">Shared Bills & Activity</h3>
-        <div class="card" id="expenses-list">Loading...</div>
-    </div>
-</div>
-
-<!-- ==================== INVENTORY ==================== -->
-<div id="view-inventory" class="section">
-    <div class="page-header"><h1 class="page-title">Inventory</h1></div>
-    <div class="container">
-        <div class="card" id="inventory-list">Loading...</div>
-        <button class="btn btn-primary" onclick="openAddProductModal(0)">+ Add Product</button>
-    </div>
-</div>
-
-<!-- ==================== SHOPPING ==================== -->
-<div id="view-shopping" class="section">
-    <div class="page-header"><h1 class="page-title">Shopping</h1></div>
-    <div class="container">
-        <div class="card" id="cart-list">Loading...</div>
-        <div style="display:flex; gap:10px;">
-            <button class="btn btn-primary" style="flex:1;" onclick="openAddProductModal(2)">+ Add to List</button>
-            <button class="btn btn-solid" style="flex:2;" onclick="openModal('checkout-modal')">🛒 Checkout & Split</button>
+        <h3 class="section-label">Сводка</h3>
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div><p style="margin:0; color:var(--text-muted); font-size: 14px;">Баланс кошелька</p><h2 style="margin:0;">$120.50</h2></div>
+                <button class="btn-action btn-primary">Пополнить</button>
+            </div>
         </div>
     </div>
 </div>
 
-<!-- ==================== TASKS ==================== -->
-<div id="view-tasks" class="section">
-    <div class="page-header"><h1 class="page-title">Tasks</h1></div>
+<div id="view-neighbors" class="section">
+    <div class="page-header"><h1 class="page-title">Соседи</h1></div>
     <div class="container">
-        <div style="display:flex; margin-bottom:15px; background:#E5E5EA; border-radius:8px; padding:2px;">
-            <div id="tab-active-btn" class="task-tab active-tab" onclick="switchTaskMode('active')">Active</div>
-            <div id="tab-history-btn" class="task-tab" onclick="switchTaskMode('history')">History</div>
-            <div id="tab-schedule-btn" class="task-tab" onclick="switchTaskMode('schedules')">Schedules</div>
+
+        <div class="segmented-control">
+            <div class="seg-tab active" onclick="switchNeighborTab('finance', this)">Финансы</div>
+            <div class="seg-tab" onclick="switchNeighborTab('products', this)">Продукты</div>
+            <div class="seg-tab" onclick="switchNeighborTab('cleaning', this)">Уборка</div>
+            <div class="seg-tab" onclick="switchNeighborTab('interaction', this)">Связь</div>
         </div>
-        <div class="card" id="tasks-list">Loading...</div>
-        <div style="display: flex; gap: 10px; margin-top: 15px;" id="task-buttons">
-            <button class="btn btn-primary" id="btn-add-task" style="flex: 2;" onclick="openModal('add-task-modal')">+ One-time Task</button>
-            <button class="btn btn-primary" id="btn-add-rec-task" style="flex: 1;" onclick="openModal('recurring-task-modal')">🔄 Schedule</button>
+
+        <div id="neighbors-finance" class="sub-section">
+            <div class="card" style="text-align: center;">
+                <p style="margin:0; color:var(--text-muted); font-size: 14px;">Долги по квартире</p>
+                <div id="balance-list" style="margin: 15px 0;">Загрузка...</div>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;">
+                    <button class="btn btn-primary" style="margin:0; flex: 1;" onclick="openModal('custom-bill-modal')">Чек</button>
+                    <button class="btn btn-primary" style="margin:0; flex: 1;" onclick="openModal('recurring-bill-modal')">🔄 Подписка</button>
+                    <button class="btn btn-green" style="margin:0; flex: 1;" onclick="openModal('settle-debt-modal')">Вернуть</button>
+                </div>
+            </div>
+            <h3 class="section-label">🔄 Регулярные платежи</h3>
+            <div class="card" id="recurring-expenses-list">Загрузка...</div>
+            <h3 class="section-label">📋 История переводов</h3>
+            <div class="card" id="settlements-list">Загрузка...</div>
+            <h3 class="section-label">Общие траты</h3>
+            <div class="card" id="expenses-list">Загрузка...</div>
+        </div>
+
+        <div id="neighbors-products" class="sub-section" style="display:none;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px;">
+                <h3 class="section-label" style="margin:0;">Холодильник & Полки</h3>
+                <button class="btn-action btn-primary" onclick="openAddProductModal(0)">+ Добавить</button>
+            </div>
+            <div class="card" id="inventory-list">Загрузка...</div>
+
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top: 20px; margin-bottom: 10px;">
+                <h3 class="section-label" style="margin:0;">Список покупок</h3>
+                <button class="btn-action btn-primary" onclick="openAddProductModal(2)">+ В список</button>
+            </div>
+            <div class="card" id="cart-list">Загрузка...</div>
+            <button class="btn btn-solid" onclick="openModal('checkout-modal')">🛒 Купить и поделить счет</button>
+        </div>
+
+        <div id="neighbors-cleaning" class="sub-section" style="display:none;">
+            <div class="segmented-control" style="background: rgba(0,0,0,0.03); padding:2px;">
+                <div id="tab-active-btn" class="seg-tab active" onclick="switchTaskMode('active')">Активные</div>
+                <div id="tab-history-btn" class="seg-tab" onclick="switchTaskMode('history')">История</div>
+                <div id="tab-schedule-btn" class="seg-tab" onclick="switchTaskMode('schedules')">Расписание</div>
+            </div>
+            <div class="card" id="tasks-list">Загрузка...</div>
+            <div style="display: flex; gap: 10px; margin-top: 15px;" id="task-buttons">
+                <button class="btn btn-primary" id="btn-add-task" style="flex: 2;" onclick="openModal('add-task-modal')">+ Разовая задача</button>
+                <button class="btn btn-primary" id="btn-add-rec-task" style="flex: 1;" onclick="openModal('recurring-task-modal')">🔄 График</button>
+            </div>
+        </div>
+
+        <div id="neighbors-interaction" class="sub-section" style="display:none;">
+            <div class="card" style="height: 350px; display: flex; flex-direction: column; background: var(--ios-card-solid); padding: 10px;">
+                <div id="chat-messages" class="chat-container">
+                </div>
+
+                <div style="display:flex; gap:10px; margin-top: 10px;">
+                    <input type="text" id="chat-input" placeholder="Сообщение..." style="margin:0; border-radius: 20px; padding: 12px; background: var(--ios-bg);" onkeypress="handleChatEnter(event)">
+                    <button class="btn-solid" onclick="sendChatMessage()" style="border:none; border-radius:50%; width:45px; height:45px; flex-shrink: 0;"><i class="bi bi-arrow-up"></i></button>
+                </div>
+            </div>
+
+            <h3 class="section-label">Smart Nudges (Анонимно)</h3>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <div class="nudge-btn" onclick="sendNudge('🍽 Пора мыть посуду!')">🍽 Посуда</div>
+                <div class="nudge-btn" onclick="sendNudge('🤫 Давайте чуть тише')">🤫 Тише</div>
+                <div class="nudge-btn" onclick="sendNudge('💡 Выключите свет в общей зоне')">💡 Свет</div>
+                <div class="nudge-btn" onclick="sendNudge('🗑 Чья очередь выносить мусор?')">🗑 Мусор</div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<div id="view-services" class="section">
+    <div class="page-header"><h1 class="page-title">Сервисы</h1></div>
+    <div class="container">
+        <h3 class="section-label">Управление жильем</h3>
+        <div class="card">
+            <div class="list-item">
+                <div class="item-info"><h4>Контракт аренды</h4><p>Истекает 31 Дек 2026</p></div>
+                <button class="btn-action btn-primary" onclick="alert('Запрос на продление отправлен')">Продлить</button>
+            </div>
+            <div class="list-item">
+                <div class="item-info"><h4>Справка о проживании</h4><p>Potvrzení o ubytování</p></div>
+                <button class="btn-action btn-primary" onclick="alert('PDF сгенерирован и отправлен на почту')">PDF</button>
+            </div>
+        </div>
+
+        <h3 class="section-label">Бронирование зон</h3>
+        <div class="grid-2">
+            <div class="service-card" onclick="alert('Бронь стиральной машины открыта')">
+                <i class="bi bi-droplet-fill"></i><span>Прачечная</span>
+            </div>
+            <div class="service-card" onclick="alert('Бронь коворкинга открыта')">
+                <i class="bi bi-laptop"></i><span>Коворкинг</span>
+            </div>
+            <div class="service-card" onclick="alert('Бронь кинозала открыта')">
+                <i class="bi bi-film"></i><span>Кинокомната</span>
+            </div>
+            <div class="service-card" onclick="alert('Бронь спортзала открыта')">
+                <i class="bi bi-bicycle"></i><span>Спортзал</span>
+            </div>
+        </div>
+
+        <h3 class="section-label">VIP Services & Аренда</h3>
+        <div class="card">
+            <div class="list-item">
+                <div class="item-info"><h4>✨ Уборка комнаты</h4><p>$15 / раз</p></div>
+                <button class="btn-action btn-solid">Заказать</button>
+            </div>
+            <div class="list-item">
+                <div class="item-info"><h4>🎮 Аренда PS5</h4><p>С локера ресепшена</p></div>
+                <button class="btn-action btn-primary">Взять</button>
+            </div>
+        </div>
+
+        <button class="btn btn-red" style="margin-top: 10px;" onclick="alert('Открытие формы заявки')">🔧 Сообщить о поломке</button>
+    </div>
+</div>
+
+<div id="view-community" class="section">
+    <div class="page-header"><h1 class="page-title">Комьюнити</h1></div>
+    <div class="container">
+        <div class="segmented-control">
+            <div class="seg-tab active">Чаты</div>
+            <div class="seg-tab">Ивенты</div>
+            <div class="seg-tab">Барахолка</div>
+        </div>
+        <div class="card" style="text-align:center; padding: 40px 20px;">
+            <i class="bi bi-chat-square-text-fill" style="font-size: 40px; color: var(--ios-blue); opacity: 0.5;"></i>
+            <h3 style="margin: 10px 0 5px 0;">Общий чат здания</h3>
+            <p style="color: var(--text-muted); font-size: 14px;">(В разработке: Анонсы, клубы по интересам, AI-модерация)</p>
         </div>
     </div>
 </div>
 
-<!-- ==================== SETTINGS ==================== -->
 <div id="view-settings" class="section active">
-    <div class="page-header"><h1 class="page-title">Settings</h1></div>
+    <div class="page-header"><h1 class="page-title">Профиль</h1></div>
     <div class="container">
-        <div class="card" id="auth-block">
-            <h3>Login or Register</h3>
-            <input type="email" id="auth-email" placeholder="Email">
-            <input type="password" id="auth-password" placeholder="Password">
-            <input type="text" id="auth-name" placeholder="Name (Only for Register)">
-            <button class="btn btn-solid" onclick="login()">Login</button>
-            <button class="btn btn-primary" onclick="register()">Register</button>
-        </div>
-        <div class="card" id="apt-block" style="display:none;">
-            <h3>Your Apartment</h3>
-            <div id="apt-info" style="margin-bottom: 20px;"></div>
-            <p style="font-size: 14px; font-weight: bold; margin-top:20px;">Create New</p>
-            <input type="text" id="apt-name" placeholder="Apartment Name">
-            <button class="btn btn-solid" onclick="createApartment()">Create</button>
-            <p style="font-size: 14px; font-weight: bold; margin-top:20px;">Join Existing</p>
-            <input type="text" id="invite-code" placeholder="Invite Code">
-            <button class="btn btn-primary" onclick="joinApartment()">Join</button>
 
-            <div id="member-actions" style="display:none; margin-top: 20px;">
-                <button class="btn btn-primary" onclick="openModal('change-password-modal')">🔑 Change Password</button>
-                <button class="btn btn-red" style="background:#FFF0E0; color:var(--ios-orange);" onclick="leaveApartment()">🚪 Leave Apartment</button>
-                <button class="btn btn-red" style="margin-top: 5px;" onclick="logout()">Logout</button>
+        <div class="card" id="auth-block">
+            <h3 style="margin-top:0;">Вход / Регистрация</h3>
+            <div class="auth-toggle">
+                <input type="radio" id="reg-solo" name="roomType" value="solo" checked>
+                <label for="reg-solo">Один</label>
+                <input type="radio" id="reg-shared" name="roomType" value="shared">
+                <label for="reg-shared">С соседом</label>
             </div>
-            <div id="no-apt-actions" style="display:none; margin-top: 20px;">
-                <button class="btn btn-primary" onclick="openModal('change-password-modal')">🔑 Change Password</button>
-                <button class="btn btn-red" style="margin-top: 5px;" onclick="logout()">Logout</button>
+            <input type="email" id="auth-email" placeholder="Email">
+            <input type="password" id="auth-password" placeholder="Пароль">
+            <input type="text" id="auth-name" placeholder="Имя (для регистрации)">
+            <button class="btn btn-solid" onclick="login()">Войти</button>
+            <button class="btn btn-primary" onclick="register()">Создать аккаунт</button>
+        </div>
+
+        <div id="apt-block" style="display:none;">
+            <div class="card">
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <div style="width:60px; height:60px; border-radius:30px; background:var(--ios-blue); color:white; display:flex; align-items:center; justify-content:center; font-size:24px; font-weight:bold;" id="profile-avatar">А</div>
+                    <div>
+                        <h2 style="margin:0;" id="profile-name">Имя</h2>
+                        <p style="margin:0; color:var(--text-muted);" id="profile-email">email@test.com</p>
+                    </div>
+                </div>
+            </div>
+
+            <h3 class="section-label">Квартира</h3>
+            <div class="card">
+                <div id="apt-info" style="margin-bottom: 10px;"></div>
+
+                <div id="no-apt-actions">
+                    <p style="font-size: 13px; color: var(--text-muted); margin-bottom:5px;">Создать новую:</p>
+                    <input type="text" id="apt-name" placeholder="Название квартиры">
+                    <button class="btn btn-solid" onclick="createApartment()">Создать</button>
+
+                    <p style="font-size: 13px; color: var(--text-muted); margin-top:15px; margin-bottom:5px;">Присоединиться:</p>
+                    <input type="text" id="invite-code" placeholder="Код приглашения">
+                    <button class="btn btn-primary" onclick="joinApartment()">Вступить</button>
+                </div>
+
+                <div id="member-actions" style="display:none;">
+                    <button class="btn btn-red" style="background: rgba(255,149,0,0.1); color:var(--ios-orange);" onclick="leaveApartment()">🚪 Выехать из квартиры</button>
+                </div>
+            </div>
+
+            <h3 class="section-label">Настройки</h3>
+            <div class="card">
+                <button class="btn-action" style="width:100%; text-align:left; padding:12px; font-size:16px; background:transparent; border-bottom:1px solid rgba(0,0,0,0.05);" onclick="openModal('change-password-modal')">🔑 Сменить пароль</button>
+                <button class="btn-action" style="width:100%; text-align:left; padding:12px; font-size:16px; background:transparent; color: var(--ios-red);" onclick="logout()">Выйти из аккаунта</button>
             </div>
         </div>
     </div>
 </div>
 
-<!-- ==================== TAB BAR ==================== -->
-<div class="tab-bar">
-    <div class="tab-item" onclick="switchTab('finance', this)"><i class="bi bi-diamond-fill"></i>Finance</div>
-    <div class="tab-item" onclick="switchTab('inventory', this)"><i class="bi bi-box-seam-fill"></i>Inventory</div>
-    <div class="tab-item" onclick="switchTab('shopping', this)"><i class="bi bi-cart-fill"></i>Cart</div>
-    <div class="tab-item" onclick="switchTab('tasks', this)"><i class="bi bi-check2-square"></i>Tasks</div>
-    <div class="tab-item active" onclick="switchTab('settings', this)"><i class="bi bi-gear-fill"></i>Settings</div>
+<div class="tab-bar-container">
+    <div class="tab-bar" id="main-tab-bar">
+        <div class="tab-item" onclick="switchTab('home', this)"><i class="bi bi-house-door-fill"></i>Главная</div>
+        <div class="tab-item" id="nav-tab-neighbors" onclick="switchTab('neighbors', this)"><i class="bi bi-people-fill"></i>Соседи</div>
+        <div class="tab-item" onclick="switchTab('services', this)"><i class="bi bi-grid-fill"></i>Сервисы</div>
+        <div class="tab-item" onclick="switchTab('community', this)"><i class="bi bi-chat-quote-fill"></i>Комьюнити</div>
+        <div class="tab-item active" onclick="switchTab('settings', this)"><i class="bi bi-person-circle"></i>Профиль</div>
+    </div>
 </div>
 
-<!-- ==================== MODALS ==================== -->
+<div class="fab-ai" onclick="alert('AI Bot: Чем могу помочь? (База знаний здания, FAQ)')">
+    🤖
+</div>
 
-<!-- Add Task -->
 <div class="modal-overlay" id="add-task-modal">
     <div class="modal" id="add-task-content">
         <div class="modal-header">
-            <span style="color: var(--ios-blue); cursor: pointer;" onclick="closeModal('add-task-modal')">Cancel</span>
-            <span style="font-weight: 600;">New Task</span>
-            <span></span>
+            <span style="color: var(--ios-blue); cursor: pointer;" onclick="closeModal('add-task-modal')">Отмена</span>
+            <span style="font-weight: 600;">Новая задача</span>
+            <span style="width: 50px;"></span>
         </div>
-        <input type="text" id="task-title" placeholder="What needs to be done?">
-        <input type="text" id="task-desc" placeholder="Details/Description (Optional)">
+        <input type="text" id="task-title" placeholder="Что нужно сделать?">
+        <input type="text" id="task-desc" placeholder="Детали (Опционально)">
         <select id="task-category">
-            <option value="0">🧹 Vacuum</option>
-            <option value="1">🪣 Mop floors</option>
-            <option value="2">🚽 Clean toilet</option>
-            <option value="3">🍳 Kitchen</option>
-            <option value="4">🍽️ Dishes</option>
-            <option value="5">🗑️ Trash</option>
-            <option value="6" selected>📦 Other</option>
+            <option value="0">🧹 Пылесос</option><option value="1">🪣 Полы</option><option value="2">🚽 Туалет</option>
+            <option value="3">🍳 Кухня</option><option value="4">🍽️ Посуда</option><option value="5">🗑️ Мусор</option>
+            <option value="6" selected>📦 Другое</option>
         </select>
-        <select id="task-assignee"><option value="">Anyone (Unassigned)</option></select>
-        <p style="font-size:13px; color:gray; margin:0 0 5px 5px;">Deadline (Optional)</p>
+        <select id="task-assignee"><option value="">Любой (Не назначено)</option></select>
+        <p style="font-size:13px; color:gray; margin:0 0 5px 5px;">Дедлайн (Опционально)</p>
         <input type="date" id="task-due-date">
-        <button class="btn btn-solid" style="margin-top:15px;" onclick="executeCreateTask()">Save Task</button>
+        <button class="btn btn-solid" style="margin-top:15px;" onclick="executeCreateTask()">Сохранить</button>
     </div>
 </div>
 
-<!-- Schedule Recurring Task -->
 <div class="modal-overlay" id="recurring-task-modal">
     <div class="modal" id="recurring-task-content">
         <div class="modal-header">
-            <span style="color: var(--ios-blue); cursor: pointer;" onclick="closeModal('recurring-task-modal')">Cancel</span>
-            <span style="font-weight: 600;">Schedule Task</span>
-            <span></span>
+            <span style="color: var(--ios-blue); cursor: pointer;" onclick="closeModal('recurring-task-modal')">Отмена</span>
+            <span style="font-weight: 600;">График уборки</span>
+            <span style="width: 50px;"></span>
         </div>
-        <p style="font-size: 13px; color: gray; text-align: center;">Task will automatically recreate itself</p>
-        <input type="text" id="rec-task-title" placeholder="E.g. Clean the Bathroom">
-        <input type="text" id="rec-task-desc" placeholder="Details/Description (Optional)">
+        <input type="text" id="rec-task-title" placeholder="Например: Помыть ванную">
+        <input type="text" id="rec-task-desc" placeholder="Детали">
         <select id="rec-task-category">
-            <option value="0">🧹 Vacuum</option>
-            <option value="1">🪣 Mop floors</option>
-            <option value="2">🚽 Clean toilet</option>
-            <option value="3">🍳 Kitchen</option>
-            <option value="4">🍽️ Dishes</option>
-            <option value="5">🗑️ Trash</option>
-            <option value="6" selected>📦 Other</option>
+            <option value="0">🧹 Пылесос</option><option value="1">🪣 Полы</option><option value="2">🚽 Туалет</option>
+            <option value="3">🍳 Кухня</option><option value="4">🍽️ Посуда</option><option value="5">🗑️ Мусор</option>
+            <option value="6" selected>📦 Другое</option>
         </select>
-        <select id="rec-task-assignee"><option value="">Anyone (Unassigned)</option></select>
+        <select id="rec-task-assignee"><option value="">Любой (Не назначено)</option></select>
         <div style="display: flex; gap: 10px;">
-            <select id="rec-task-pattern" style="flex: 2;"><option value="1">Weekly</option><option value="2">Monthly</option><option value="0">Daily</option></select>
-            <input type="number" id="rec-task-interval" value="1" min="1" style="flex: 1;" placeholder="Every X">
+            <select id="rec-task-pattern" style="flex: 2;"><option value="1">Раз в неделю</option><option value="2">Раз в месяц</option><option value="0">Каждый день</option></select>
+            <input type="number" id="rec-task-interval" value="1" min="1" style="flex: 1;" placeholder="Раз в X">
         </div>
-        <p style="font-size:13px; color:gray; margin:0 0 5px 5px;">Starting From</p>
+        <p style="font-size:13px; color:gray; margin:0 0 5px 5px;">Начиная с</p>
         <input type="date" id="rec-task-startdate">
-        <button class="btn btn-solid" style="margin-top: 10px;" onclick="executeRecurringTask()">Save Schedule</button>
+        <button class="btn btn-solid" style="margin-top: 10px;" onclick="executeRecurringTask()">Сохранить график</button>
     </div>
 </div>
 
-<!-- Add Product -->
 <div class="modal-overlay" id="add-product-modal">
     <div class="modal" id="add-product-content">
         <div class="modal-header">
-            <span style="color: var(--ios-blue); cursor: pointer;" onclick="closeModal('add-product-modal')">Cancel</span>
-            <span style="font-weight: 600;" id="add-product-title">Add Product</span>
-            <span></span>
+            <span style="color: var(--ios-blue); cursor: pointer;" onclick="closeModal('add-product-modal')">Отмена</span>
+            <span style="font-weight: 600;" id="add-product-title">Добавить продукт</span>
+            <span style="width: 50px;"></span>
         </div>
-        <input type="text" id="prod-name" placeholder="Product Name (e.g. Milk)">
+        <input type="text" id="prod-name" placeholder="Название (напр. Молоко)">
         <div style="display:flex; gap:10px;">
-            <input type="number" id="prod-qty" placeholder="Qty" value="1" style="flex:1;">
+            <input type="number" id="prod-qty" placeholder="Кол-во" value="1" style="flex:1;">
             <select id="prod-unit" style="flex:2;">
-                <option value="0">Pieces</option>
-                <option value="1">Packages</option>
-                <option value="2">Bottles</option>
-                <option value="3">Kg</option>
-                <option value="5">Liters</option>
+                <option value="0">Шт</option><option value="1">Упаковки</option><option value="2">Бутылки</option>
+                <option value="3">Кг</option><option value="5">Литры</option>
             </select>
         </div>
         <select id="prod-category">
-            <option value="0">🥦 Food</option>
-            <option value="1">🧻 Household</option>
-            <option value="2">🧴 Hygiene</option>
-            <option value="3">📦 Other</option>
+            <option value="0">🥦 Еда</option><option value="1">🧻 Хозтовары</option>
+            <option value="2">🧴 Гигиена</option><option value="3">📦 Другое</option>
         </select>
         <div id="advanced-inventory-fields">
             <select id="prod-location">
-                <option value="0">❄️ Fridge</option>
-                <option value="1">🧊 Freezer</option>
-                <option value="2">🥫 Pantry</option>
-                <option value="3">🛁 Bathroom</option>
-                <option value="4">📦 Other</option>
+                <option value="0">❄️ Холодильник</option><option value="1">🧊 Морозилка</option>
+                <option value="2">🥫 Полка</option><option value="3">🛁 Ванная</option><option value="4">📦 Другое</option>
             </select>
-            <p style="font-size:13px; color:gray; margin:0 0 5px 5px;">Expiry Date (Optional)</p>
+            <p style="font-size:13px; color:gray; margin:0 0 5px 5px;">Срок годности (Опционально)</p>
             <input type="date" id="prod-expiry">
         </div>
-        <button class="btn btn-solid" style="margin-top:10px;" onclick="executeAddProduct()">Save</button>
+        <button class="btn btn-solid" style="margin-top:10px;" onclick="executeAddProduct()">Сохранить</button>
     </div>
 </div>
 
-<!-- Edit Item (Update quantity) -->
 <div class="modal-overlay" id="edit-item-modal">
     <div class="modal" id="edit-item-content">
         <div class="modal-header">
-            <span style="color: var(--ios-blue); cursor: pointer;" onclick="closeModal('edit-item-modal')">Cancel</span>
-            <span style="font-weight: 600;">Edit Item</span>
-            <span></span>
+            <span style="color: var(--ios-blue); cursor: pointer;" onclick="closeModal('edit-item-modal')">Отмена</span>
+            <span style="font-weight: 600;">Изменить</span>
+            <span style="width: 50px;"></span>
         </div>
-        <input type="text" id="edit-item-name" placeholder="Name">
-        <input type="number" id="edit-item-qty" placeholder="Quantity" min="0.01" step="0.01">
+        <input type="text" id="edit-item-name" placeholder="Название">
+        <input type="number" id="edit-item-qty" placeholder="Количество" min="0.01" step="0.01">
         <input type="hidden" id="edit-item-id">
         <input type="hidden" id="edit-item-apt">
-        <button class="btn btn-solid" style="margin-top:10px;" onclick="executeEditItem()">Save Changes</button>
+        <button class="btn btn-solid" style="margin-top:10px;" onclick="executeEditItem()">Сохранить</button>
     </div>
 </div>
 
-<!-- Checkout -->
 <div class="modal-overlay" id="checkout-modal">
     <div class="modal" id="checkout-content">
         <div class="modal-header">
-            <span style="color: var(--ios-blue); cursor: pointer;" onclick="closeModal('checkout-modal')">Cancel</span>
-            <span style="font-weight: 600;">Checkout</span>
-            <span></span>
+            <span style="color: var(--ios-blue); cursor: pointer;" onclick="closeModal('checkout-modal')">Отмена</span>
+            <span style="font-weight: 600;">Покупка</span>
+            <span style="width: 50px;"></span>
         </div>
         <input type="number" id="split-amount" class="input-huge" placeholder="$0.00">
-        <button class="btn btn-solid" onclick="executeCheckout()">Finish & Split</button>
+        <button class="btn btn-solid" onclick="executeCheckout()">Оплатить и поделить</button>
     </div>
 </div>
 
-<!-- Custom Bill -->
 <div class="modal-overlay" id="custom-bill-modal">
     <div class="modal" id="custom-bill-content">
         <div class="modal-header">
-            <span style="color: var(--ios-blue); cursor: pointer;" onclick="closeModal('custom-bill-modal')">Cancel</span>
-            <span style="font-weight: 600;">Add Custom Bill</span>
-            <span></span>
+            <span style="color: var(--ios-blue); cursor: pointer;" onclick="closeModal('custom-bill-modal')">Отмена</span>
+            <span style="font-weight: 600;">Новый счет</span>
+            <span style="width: 50px;"></span>
         </div>
         <select id="bill-category">
-            <option value="0">🛒 Groceries</option>
-            <option value="1">🏠 Rent</option>
-            <option value="2">💡 Utilities</option>
-            <option value="3">🌐 Internet</option>
-            <option value="4">🧼 Household</option>
-            <option value="5">📦 Other</option>
+            <option value="0">🛒 Продукты</option><option value="1">🏠 Аренда</option><option value="2">💡 Коммуналка</option>
+            <option value="3">🌐 Интернет</option><option value="4">🧼 Хозтовары</option><option value="5">📦 Другое</option>
         </select>
-        <input type="text" id="bill-desc" placeholder="Brief description">
+        <input type="text" id="bill-desc" placeholder="Краткое описание">
         <input type="number" id="bill-amount" class="input-huge" placeholder="$0.00">
-        <button class="btn btn-solid" onclick="executeCustomBill()">Add & Split</button>
+        <button class="btn btn-solid" onclick="executeCustomBill()">Добавить и поделить</button>
     </div>
 </div>
 
-<!-- Settle Debt -->
 <div class="modal-overlay" id="settle-debt-modal">
     <div class="modal" id="settle-debt-content">
         <div class="modal-header">
-            <span style="color: var(--ios-blue); cursor: pointer;" onclick="closeModal('settle-debt-modal')">Cancel</span>
-            <span style="font-weight: 600;">Settle Up</span>
-            <span></span>
+            <span style="color: var(--ios-blue); cursor: pointer;" onclick="closeModal('settle-debt-modal')">Отмена</span>
+            <span style="font-weight: 600;">Вернуть долг</span>
+            <span style="width: 50px;"></span>
         </div>
         <select id="settle-receiver"></select>
         <input type="number" id="settle-amount" class="input-huge" placeholder="$0.00">
-        <button class="btn btn-green" onclick="executeSettleDebt()">I Paid Them</button>
+        <button class="btn btn-green" onclick="executeSettleDebt()">Я перевел деньги</button>
     </div>
 </div>
 
-<!-- Recurring Bill -->
 <div class="modal-overlay" id="recurring-bill-modal">
     <div class="modal" id="recurring-bill-content">
         <div class="modal-header">
-            <span style="color: var(--ios-blue); cursor: pointer;" onclick="closeModal('recurring-bill-modal')">Cancel</span>
-            <span style="font-weight: 600;">Add Subscription</span>
-            <span></span>
+            <span style="color: var(--ios-blue); cursor: pointer;" onclick="closeModal('recurring-bill-modal')">Отмена</span>
+            <span style="font-weight: 600;">Подписка</span>
+            <span style="width: 50px;"></span>
         </div>
-        <p style="font-size: 13px; color: gray; text-align: center;">Set up auto-splitting for bills like WiFi or Rent</p>
-        <input type="text" id="rec-bill-desc" placeholder="E.g. Internet, Spotify">
+        <p style="font-size: 13px; color: gray; text-align: center;">Автоматическое разделение интернета, аренды и т.д.</p>
+        <input type="text" id="rec-bill-desc" placeholder="Например: Интернет">
         <input type="number" id="rec-bill-amount" class="input-huge" placeholder="$0.00">
         <select id="rec-bill-category">
-            <option value="1">🏠 Rent</option>
-            <option value="2">💡 Utilities</option>
-            <option value="3">🌐 Internet</option>
-            <option value="5">📦 Other</option>
+            <option value="1">🏠 Аренда</option><option value="2">💡 Коммуналка</option>
+            <option value="3">🌐 Интернет</option><option value="5">📦 Другое</option>
         </select>
         <div style="display: flex; gap: 10px;">
-            <select id="rec-bill-pattern" style="flex: 2;"><option value="2">Monthly</option><option value="1">Weekly</option><option value="0">Daily</option></select>
-            <input type="number" id="rec-bill-interval" value="1" min="1" style="flex: 1;" placeholder="Every X">
+            <select id="rec-bill-pattern" style="flex: 2;"><option value="2">Раз в месяц</option><option value="1">Раз в неделю</option><option value="0">Каждый день</option></select>
+            <input type="number" id="rec-bill-interval" value="1" min="1" style="flex: 1;" placeholder="Раз в X">
         </div>
-        <p style="font-size:13px; color:gray; margin:0 0 5px 5px;">First Payment Date</p>
+        <p style="font-size:13px; color:gray; margin:0 0 5px 5px;">Дата первого платежа</p>
         <input type="date" id="rec-bill-startdate">
-        <button class="btn btn-solid" style="margin-top: 10px;" onclick="executeRecurringBill()">Set up Auto-Pay</button>
+        <button class="btn btn-solid" style="margin-top: 10px;" onclick="executeRecurringBill()">Настроить автоплатеж</button>
     </div>
 </div>
 
-<!-- Change Password -->
 <div class="modal-overlay" id="change-password-modal">
     <div class="modal" id="change-password-content">
         <div class="modal-header">
-            <span style="color: var(--ios-blue); cursor: pointer;" onclick="closeModal('change-password-modal')">Cancel</span>
-            <span style="font-weight: 600;">Change Password</span>
-            <span></span>
+            <span style="color: var(--ios-blue); cursor: pointer;" onclick="closeModal('change-password-modal')">Отмена</span>
+            <span style="font-weight: 600;">Смена пароля</span>
+            <span style="width: 50px;"></span>
         </div>
-        <input type="password" id="cp-old" placeholder="Current Password">
-        <input type="password" id="cp-new" placeholder="New Password">
-        <input type="password" id="cp-confirm" placeholder="Confirm New Password">
-        <button class="btn btn-solid" style="margin-top: 15px;" onclick="executeChangePassword()">Save Password</button>
+        <input type="password" id="cp-old" placeholder="Текущий пароль">
+        <input type="password" id="cp-new" placeholder="Новый пароль">
+        <input type="password" id="cp-confirm" placeholder="Подтвердите новый пароль">
+        <button class="btn btn-solid" style="margin-top: 15px;" onclick="executeChangePassword()">Сохранить</button>
     </div>
 </div>
 
-<!-- ==================== JAVASCRIPT ==================== -->
 <script>
     const API_URL = '/api';
     let selectedCartItems = new Set();
     let apartmentMembers = [];
 
     const CATEGORY_ICONS = ['🛒', '🏠', '💡', '🌐', '🧼', '📦'];
-    const UNIT_NAMES = ['pcs', 'pkgs', 'btls', 'kg', 'g', 'L', 'ml'];
-    const LOCATIONS = ['❄️ Fridge', '🧊 Freezer', '🥫 Pantry', '🛁 Bathroom', '📦 Other'];
-    const INV_CATEGORIES = ['🥦 Food', '🧻 Household', '🧴 Hygiene', '📦 Other'];
+    const UNIT_NAMES = ['шт', 'упак', 'бут', 'кг', 'г', 'л', 'мл'];
+    const LOCATIONS = ['❄️ Холодильник', '🧊 Морозилка', '🥫 Полка', '🛁 Ванная', '📦 Другое'];
+    const INV_CATEGORIES = ['🥦 Еда', '🧻 Хозтовары', '🧴 Гигиена', '📦 Другое'];
     const CHORE_CAT_ICONS = ['🧹', '🪣', '🚽', '🍳', '🍽️', '🗑️', '📦'];
 
     let currentTaskMode = 'active';
+
+    // UI Mocks
+    function simulateDoorUnlock(element) {
+        const icon = element.querySelector('#door-icon');
+        const text = element.querySelector('h2');
+        icon.className = 'bi bi-door-open-fill';
+        text.innerText = 'Открыто';
+        element.style.background = 'linear-gradient(145deg, #34C759, #28a745)';
+        element.style.boxShadow = '0 15px 35px rgba(52, 199, 89, 0.3)';
+        setTimeout(() => {
+            icon.className = 'bi bi-door-closed-fill';
+            text.innerText = 'Разблокировать';
+            element.style.background = 'linear-gradient(145deg, #007AFF, #AF52DE)';
+            element.style.boxShadow = '0 15px 35px rgba(175, 82, 222, 0.3)';
+        }, 3000);
+    }
+
+    // --- JWT Helpers ---
+    function parseJwt(token) {
+        try { return JSON.parse(atob(token.split('.')[1])); }
+        catch (e) { return null; }
+    }
+
+    function getCurrentUserId() {
+        const token = getToken();
+        if (!token) return null;
+        const decoded = parseJwt(token);
+        return decoded["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"];
+    }
 
     // --- SIGNALR ---
     let hubConnection = null;
@@ -407,11 +655,18 @@
             .build();
 
         hubConnection.on("UpdateFinance", () => {
-            if (document.getElementById('view-finance').classList.contains('active')) loadFinance();
+            if (document.getElementById('view-neighbors').classList.contains('active')) loadFinance();
         });
         hubConnection.on("UpdateInventory", () => {
-            if (document.getElementById('view-inventory').classList.contains('active')) loadInventory();
-            if (document.getElementById('view-shopping').classList.contains('active')) loadShopping();
+            if (document.getElementById('view-neighbors').classList.contains('active')) {
+                loadInventory();
+                loadShopping();
+            }
+        });
+        hubConnection.on("ReceiveChatMessage", (msg) => {
+            if (document.getElementById('view-neighbors').classList.contains('active')) {
+                appendMessageToUI(msg);
+            }
         });
 
         await hubConnection.start();
@@ -421,6 +676,7 @@
     // --- BASE FUNCTIONS ---
     function getToken() { return localStorage.getItem('jwt'); }
     function getAptId() { return localStorage.getItem('aptId'); }
+    function getRoomMode() { return localStorage.getItem('coliving_mode') || 'solo'; }
 
     async function apiFetch(endpoint, method = 'GET', body = null) {
         const headers = { 'Content-Type': 'application/json' };
@@ -433,7 +689,7 @@
             if (response.status === 401) { logout(); return null; }
             const data = await response.json().catch(() => null);
             if (!response.ok) {
-                alert(data?.error || "Error occurred");
+                alert(data?.error || "Произошла ошибка");
                 return null;
             }
             return data;
@@ -443,7 +699,7 @@
         }
     }
 
-    // --- MODAL & TAB ---
+    // --- UI NAVIGATION ---
     function openModal(id) {
         document.getElementById(id).style.display = 'block';
         setTimeout(() => document.getElementById(id.replace('-modal', '-content')).classList.add('open'), 10);
@@ -453,45 +709,81 @@
         document.getElementById(contentId).classList.remove('open');
         setTimeout(() => document.getElementById(id).style.display = 'none', 300);
     }
+
     function switchTab(tab, element) {
         document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
         document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
         document.getElementById(`view-${tab}`).classList.add('active');
         element.classList.add('active');
-        if (tab === 'finance') loadFinance();
-        if (tab === 'inventory') loadInventory();
-        if (tab === 'shopping') loadShopping();
-        if (tab === 'tasks') loadTasks();
+
+        if (tab === 'neighbors') {
+            switchNeighborTab('finance', document.querySelector('#view-neighbors .seg-tab'));
+        }
         if (tab === 'settings') checkAuthState();
     }
 
+    function switchNeighborTab(subTab, element) {
+        document.querySelectorAll('#view-neighbors .seg-tab').forEach(t => t.classList.remove('active'));
+        element.classList.add('active');
+
+        document.querySelectorAll('#view-neighbors .sub-section').forEach(s => s.style.display = 'none');
+        document.getElementById(`neighbors-${subTab}`).style.display = 'block';
+
+        if (subTab === 'finance') loadFinance();
+        if (subTab === 'products') { loadInventory(); loadShopping(); }
+        if (subTab === 'cleaning') loadTasks();
+        if (subTab === 'interaction') loadChatHistory();
+    }
+
+    function setupUIByMode() {
+        const mode = getRoomMode();
+        if (mode === 'solo') {
+            document.getElementById('nav-tab-neighbors').style.display = 'none';
+        } else {
+            document.getElementById('nav-tab-neighbors').style.display = 'block';
+        }
+    }
+
     async function checkAuthState() {
+        setupUIByMode();
+
         if (getToken()) {
             document.getElementById('auth-block').style.display = 'none';
             document.getElementById('apt-block').style.display = 'block';
+
+            // Получаем имя из токена, если есть
+            const tokenInfo = parseJwt(getToken());
+            const userName = tokenInfo ? tokenInfo["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"] : "Жилец";
+            document.getElementById('profile-name').innerText = userName || "Жилец";
+            if(userName) document.getElementById('profile-avatar').innerText = userName.charAt(0).toUpperCase();
+
             if (getAptId()) {
                 startSignalR(getAptId());
                 const apt = await apiFetch(`/Apartments/${getAptId()}`);
                 if (apt) {
                     apartmentMembers = apt.members;
                     document.getElementById('apt-info').innerHTML = `
-                        <h2 style="margin:0">${apt.name}</h2>
-                        <div style="background:#E5E5EA; padding:10px; border-radius:10px; margin-top:10px; text-align:center;">
-                            <span style="font-size:12px; color:gray; display:block;">INVITE CODE</span>
-                            <strong style="font-size:24px; letter-spacing:2px;">${apt.inviteCode}</strong>
+                        <div style="background: rgba(0,122,255,0.05); padding:15px; border-radius:16px; text-align:center;">
+                            <span style="font-size:12px; color:gray; display:block; text-transform: uppercase;">Код приглашения</span>
+                            <strong style="font-size:28px; letter-spacing:3px; color: var(--ios-blue);">${apt.inviteCode}</strong>
                         </div>
-                        <div style="margin-top:10px;">
-                            ${apt.members.map(m => `<span style="display:inline-block; background:#E5F1FF; color:var(--ios-blue); padding:4px 10px; border-radius:12px; font-size:13px; margin:2px;">${m.name}</span>`).join('')}
+                        <div style="margin-top:15px; display:flex; flex-wrap:wrap; gap:5px;">
+                            ${apt.members.map(m => `<span style="background:var(--ios-card-solid); border:1px solid rgba(0,0,0,0.05); padding:6px 12px; border-radius:12px; font-size:13px; font-weight:600;">${m.name}</span>`).join('')}
                         </div>`;
 
                     const membersHtml = apartmentMembers.map(m => `<option value="${m.userId}">${m.name}</option>`).join('');
                     ['task-assignee', 'rec-task-assignee'].forEach(id => {
                         const el = document.getElementById(id);
-                        if (el) el.innerHTML = `<option value="">Anyone (Unassigned)</option>` + membersHtml;
+                        if (el) el.innerHTML = `<option value="">Любой (Не назначено)</option>` + membersHtml;
                     });
 
                     document.getElementById('member-actions').style.display = 'block';
                     document.getElementById('no-apt-actions').style.display = 'none';
+
+                    if(apartmentMembers.length > 1 && getRoomMode() !== 'shared') {
+                        localStorage.setItem('coliving_mode', 'shared');
+                        setupUIByMode();
+                    }
                 }
             } else {
                 document.getElementById('member-actions').style.display = 'none';
@@ -504,108 +796,103 @@
     }
 
     function getRecurrenceText(pattern, interval) {
-        const pStr = pattern === 0 ? "Days" : (pattern === 1 ? "Weeks" : "Months");
-        return `Every ${interval > 1 ? interval + ' ' + pStr : pStr.replace('s', '')}`;
+        const pStr = pattern === 0 ? "дней" : (pattern === 1 ? "нед" : "мес");
+        return `Раз в ${interval > 1 ? interval + ' ' + pStr : pStr}`;
     }
 
-    // --- EXPIRY HELPER ---
     function getExpiryBadge(expiryDateStr) {
         if (!expiryDateStr) return '';
         const expiry = new Date(expiryDateStr);
         const now = new Date();
         const diffDays = Math.ceil((expiry - now) / (1000 * 60 * 60 * 24));
 
-        if (diffDays < 0) return `<span class="expiry-badge expiry-critical">⚠️ Expired ${Math.abs(diffDays)}d ago</span>`;
-        if (diffDays === 0) return `<span class="expiry-badge expiry-critical">⚠️ Expires today!</span>`;
-        if (diffDays === 1) return `<span class="expiry-badge expiry-critical">⚠️ Expires tomorrow</span>`;
-        if (diffDays <= 3) return `<span class="expiry-badge expiry-warning">⏳ Expires in ${diffDays} days</span>`;
+        if (diffDays < 0) return `<span class="expiry-badge expiry-critical">⚠️ Просрочено ${Math.abs(diffDays)}д</span>`;
+        if (diffDays === 0) return `<span class="expiry-badge expiry-critical">⚠️ Истекает сегодня!</span>`;
+        if (diffDays === 1) return `<span class="expiry-badge expiry-critical">⚠️ Истекает завтра</span>`;
+        if (diffDays <= 3) return `<span class="expiry-badge expiry-warning">⏳ Осталось ${diffDays} дн</span>`;
         if (diffDays <= 7) return `<span class="expiry-badge expiry-ok">✓ ${new Date(expiryDateStr).toLocaleDateString()}</span>`;
         return `<span style="font-size:11px; color:var(--text-muted);">${new Date(expiryDateStr).toLocaleDateString()}</span>`;
     }
 
     // ==========================================
-    // 1. FINANCE
+    // 1. ФИНАНСЫ
     // ==========================================
     async function loadFinance() {
         if (!getAptId()) return;
 
-        // Balances
         try {
-            document.getElementById('balance-list').innerHTML = "Loading balances...";
+            document.getElementById('balance-list').innerHTML = "Загрузка...";
             const balances = await apiFetch(`/Expenses/balance/${getAptId()}`);
             if (balances && balances.length > 0) {
                 document.getElementById('balance-list').innerHTML = balances.map(b => {
-                    const text = b.balance === 0 ? "Settled up" : (b.balance > 0 ? "Owes you" : "You owe");
-                    const color = b.balance === 0 ? "gray" : (b.balance > 0 ? "var(--ios-green)" : "var(--ios-red)");
-                    return `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid #f0f0f0; padding-bottom:8px;">
-                        <div style="text-align:left;"><b style="font-size:18px;">${b.userName}</b><div style="font-size:13px; color:${color};">${text}</div></div>
-                        <span style="font-size:20px; font-weight:bold; color:${color}">$${Math.abs(b.balance).toFixed(2)}</span></div>`;
+                    const text = b.balance === 0 ? "В расчете" : (b.balance > 0 ? "Должен вам" : "Вы должны");
+                    const color = b.balance === 0 ? "var(--text-muted)" : (b.balance > 0 ? "var(--ios-green)" : "var(--ios-red)");
+                    return `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid rgba(0,0,0,0.05); padding-bottom:8px;">
+                        <div style="text-align:left;"><b style="font-size:18px;">${b.userName}</b><div style="font-size:13px; color:${color}; font-weight:600;">${text}</div></div>
+                        <span style="font-size:20px; font-weight:800; color:${color}">$${Math.abs(b.balance).toFixed(2)}</span></div>`;
                 }).join('');
                 document.getElementById('settle-receiver').innerHTML = balances.map(b => `<option value="${b.userId}">${b.userName}</option>`).join('');
             } else {
-                document.getElementById('balance-list').innerHTML = "<p style='color:gray; font-size:14px; padding:10px;'>You live alone. Invite roommates!</p>";
-                document.getElementById('settle-receiver').innerHTML = '<option value="">No roommates</option>';
+                document.getElementById('balance-list').innerHTML = "<p style='color:gray; font-size:14px;'>Вы живете одни.</p>";
+                document.getElementById('settle-receiver').innerHTML = '<option value="">Нет соседей</option>';
             }
-        } catch (e) { console.error("Balance Error:", e); }
+        } catch (e) {}
 
-        // Settlements history (NEW in v1.1)
         try {
             const settEl = document.getElementById('settlements-list');
-            settEl.innerHTML = "Loading...";
+            settEl.innerHTML = "Загрузка...";
             const settlements = await apiFetch(`/Expenses/settlements/${getAptId()}`);
             if (settlements && settlements.length > 0) {
                 settEl.innerHTML = settlements.slice(0, 10).map(s =>
                     `<div class="settlement-item">
                         <div><b style="font-size:15px;">💸 ${s.senderName}</b> <span style="color:var(--text-muted);">→</span> <b>${s.receiverName}</b>
                         <div style="font-size:12px; color:var(--text-muted);">${new Date(s.date).toLocaleDateString()}</div></div>
-                        <span style="color:var(--ios-green); font-weight:700; font-size:16px;">$${s.amount.toFixed(2)}</span>
+                        <span style="color:var(--ios-green); font-weight:800; font-size:16px;">$${s.amount.toFixed(2)}</span>
                     </div>`
                 ).join('');
             } else {
-                settEl.innerHTML = "<p style='text-align:center; color:gray; font-size:14px;'>No settlements yet</p>";
+                settEl.innerHTML = "<p style='text-align:center; color:gray; font-size:14px;'>Нет переводов</p>";
             }
-        } catch (e) { console.error("Settlements Error:", e); }
+        } catch (e) {}
 
-        // Subscriptions
         try {
             const recEl = document.getElementById('recurring-expenses-list');
-            recEl.innerHTML = "Loading subscriptions...";
+            recEl.innerHTML = "Загрузка...";
             const subs = await apiFetch(`/Expenses/recurring/${getAptId()}`);
             if (subs && subs.length > 0) {
                 recEl.innerHTML = subs.map(s =>
                     `<div class="list-item">
-                        <div class="item-info"><h4>${s.description}</h4><p>Paid by ${s.payerName} • ${getRecurrenceText(s.pattern, s.interval)}</p></div>
+                        <div class="item-info"><h4>${s.description}</h4><p>Оплатил ${s.payerName} • ${getRecurrenceText(s.pattern, s.interval)}</p></div>
                         <div style="text-align:right;"><h4 style="margin:0; color:var(--ios-blue)">$${s.amount.toFixed(2)}</h4>
-                        <span style="font-size:11px; color:gray">Next: ${new Date(s.nextRunDate).toLocaleDateString()}</span></div>
+                        <span style="font-size:11px; color:gray">След: ${new Date(s.nextRunDate).toLocaleDateString()}</span></div>
                     </div>`
                 ).join('');
             } else {
-                recEl.innerHTML = "<p style='text-align:center; color:gray; font-size:14px;'>No active subscriptions</p>";
+                recEl.innerHTML = "<p style='text-align:center; color:gray; font-size:14px;'>Нет активных подписок</p>";
             }
-        } catch (e) { console.error("Subscriptions Error:", e); }
+        } catch (e) {}
 
-        // Expense history
         try {
-            document.getElementById('expenses-list').innerHTML = "Loading history...";
+            document.getElementById('expenses-list').innerHTML = "Загрузка...";
             const expenses = await apiFetch(`/Expenses/${getAptId()}`);
             if (expenses && expenses.length > 0) {
                 document.getElementById('expenses-list').innerHTML = expenses.map(e =>
                     `<div class="list-item">
                         <div style="font-size:24px; margin-right:15px;">${CATEGORY_ICONS[e.categoryId] || '📦'}</div>
-                        <div class="item-info" style="flex-grow:1;"><h4>${e.description}</h4><p>${new Date(e.date).toLocaleDateString()} • Paid by ${e.payerName}</p></div>
+                        <div class="item-info" style="flex-grow:1;"><h4>${e.description}</h4><p>${new Date(e.date).toLocaleDateString()} • Оплатил ${e.payerName}</p></div>
                         <h4 style="margin:0;">$${e.amount.toFixed(2)}</h4>
                     </div>`
                 ).join('');
             } else {
-                document.getElementById('expenses-list').innerHTML = "<p style='text-align:center; color:gray'>No activity yet</p>";
+                document.getElementById('expenses-list').innerHTML = "<p style='text-align:center; color:gray'>Пока нет трат</p>";
             }
-        } catch (e) { console.error("History Error:", e); }
+        } catch (e) {}
     }
 
     async function executeCustomBill() {
         const amount = document.getElementById('bill-amount').value;
-        const desc = document.getElementById('bill-desc').value || 'Custom Bill';
-        if (!amount || amount <= 0) return alert("Enter valid amount!");
+        const desc = document.getElementById('bill-desc').value || 'Счет';
+        if (!amount || amount <= 0) return alert("Введите сумму!");
         const res = await apiFetch('/Expenses', 'POST', { apartmentId: getAptId(), amount: parseFloat(amount), description: desc, category: parseInt(document.getElementById('bill-category').value), payerId: "ignored" });
         if (res) { closeModal('custom-bill-modal'); document.getElementById('bill-amount').value = ''; document.getElementById('bill-desc').value = ''; loadFinance(); }
     }
@@ -613,7 +900,7 @@
     async function executeSettleDebt() {
         const receiverId = document.getElementById('settle-receiver').value;
         const amount = document.getElementById('settle-amount').value;
-        if (!receiverId || !amount || amount <= 0) return alert("Select roommate and enter amount!");
+        if (!receiverId || !amount || amount <= 0) return alert("Выберите соседа и сумму!");
         const res = await apiFetch('/Expenses/settle', 'POST', { apartmentId: getAptId(), receiverId: receiverId, amount: parseFloat(amount) });
         if (res) { closeModal('settle-debt-modal'); document.getElementById('settle-amount').value = ''; loadFinance(); }
     }
@@ -622,7 +909,7 @@
         const desc = document.getElementById('rec-bill-desc').value;
         const amount = document.getElementById('rec-bill-amount').value;
         const startDate = document.getElementById('rec-bill-startdate').value;
-        if (!desc || !amount || !startDate) return alert("Fill all required fields!");
+        if (!desc || !amount || !startDate) return alert("Заполните все поля!");
         const res = await apiFetch('/Expenses/recurring', 'POST', {
             apartmentId: getAptId(), amount: parseFloat(amount), description: desc,
             category: parseInt(document.getElementById('rec-bill-category').value),
@@ -634,20 +921,18 @@
     }
 
     // ==========================================
-    // 2. INVENTORY (with expiry badges)
+    // 2. ПРОДУКТЫ
     // ==========================================
     async function loadInventory() {
         if (!getAptId()) return;
-        document.getElementById('inventory-list').innerHTML = "Loading...";
+        document.getElementById('inventory-list').innerHTML = "Загрузка...";
         try {
             const items = await apiFetch(`/Inventory/${getAptId()}?status=0`);
             if (items && items.length > 0) {
-                // Sort: expired/expiring first
                 items.sort((a, b) => {
                     const getScore = (item) => {
                         if (!item.expiryDate) return 999;
-                        const days = Math.ceil((new Date(item.expiryDate) - new Date()) / (1000 * 60 * 60 * 24));
-                        return days;
+                        return Math.ceil((new Date(item.expiryDate) - new Date()) / (1000 * 60 * 60 * 24));
                     };
                     return getScore(a) - getScore(b);
                 });
@@ -655,13 +940,13 @@
                 let html = "";
                 const locationGroups = {};
                 items.forEach(i => {
-                    const loc = LOCATIONS[i.location] || '📦 Other';
+                    const loc = LOCATIONS[i.location] || '📦 Другое';
                     if (!locationGroups[loc]) locationGroups[loc] = [];
                     locationGroups[loc].push(i);
                 });
 
                 Object.entries(locationGroups).forEach(([locName, locItems]) => {
-                    html += `<h4 style="margin:15px 0 5px 5px; color:var(--ios-blue); font-size:15px; text-transform:uppercase;">${locName}</h4>`;
+                    html += `<h4 style="margin:15px 0 5px 5px; color:var(--text-muted); font-size:13px; text-transform:uppercase;">${locName}</h4>`;
                     html += locItems.map(i => {
                         const expiryBadge = getExpiryBadge(i.expiryDate);
                         return `
@@ -672,97 +957,23 @@
                                     ${expiryBadge ? `<div>${expiryBadge}</div>` : ''}
                                 </div>
                                 <div style="display:flex; gap:6px; flex-shrink:0; margin-left:8px;">
-                                    <button class="btn-action" style="background:#E5F1FF; color:var(--ios-blue);" onclick="openEditItemModal('${i.id}', '${escapeHtml(i.name)}', ${i.quantity})">✏️</button>
-                                    <button class="btn-action" style="background:#E5E5EA;" onclick="moveToCart('${i.id}')">🛒</button>
-                                    <button class="btn-action btn-red" onclick="consumeItem('${i.id}')">✓ Used</button>
+                                    <button class="btn-action" style="background:rgba(0,122,255,0.1); color:var(--ios-blue);" onclick="openEditItemModal('${i.id}', '${escapeHtml(i.name)}', ${i.quantity})">✏️</button>
+                                    <button class="btn-action" style="background:rgba(0,0,0,0.05);" onclick="moveToCart('${i.id}')">🛒</button>
+                                    <button class="btn-action btn-red" onclick="consumeItem('${i.id}')">✓ Съедено</button>
                                 </div>
                             </div>`;
                     }).join('');
                 });
                 document.getElementById('inventory-list').innerHTML = html;
             } else {
-                document.getElementById('inventory-list').innerHTML = "<p style='text-align:center; color:gray; padding:20px;'>Inventory is empty. Add your first product!</p>";
+                document.getElementById('inventory-list').innerHTML = "<p style='text-align:center; color:gray; padding:10px;'>Холодильник пуст.</p>";
             }
-        } catch (e) { console.error("Inventory Error:", e); }
+        } catch (e) {}
     }
 
-    function escapeHtml(text) {
-        return (text || '').replace(/'/g, "\\'").replace(/"/g, "&quot;");
-    }
-
-    function openAddProductModal(targetStatus) {
-        document.getElementById('add-product-title').textContent = targetStatus === 2 ? 'Add to Shopping List' : 'Add Product';
-        document.getElementById('prod-name').dataset.targetStatus = targetStatus;
-        document.getElementById('advanced-inventory-fields').style.display = targetStatus === 2 ? 'none' : 'block';
-        openModal('add-product-modal');
-    }
-
-    async function executeAddProduct() {
-        const name = document.getElementById('prod-name').value;
-        const qty = document.getElementById('prod-qty').value;
-        const targetStatus = parseInt(document.getElementById('prod-name').dataset.targetStatus || '0');
-        if (!name) return alert("Enter product name!");
-
-        const expiryVal = document.getElementById('prod-expiry').value;
-        const res = await apiFetch('/Inventory', 'POST', {
-            apartmentId: getAptId(),
-            customName: name,
-            quantity: parseFloat(qty) || 1,
-            unit: parseInt(document.getElementById('prod-unit').value),
-            status: targetStatus,
-            category: parseInt(document.getElementById('prod-category').value),
-            location: parseInt(document.getElementById('prod-location').value),
-            expiryDate: expiryVal ? new Date(expiryVal).toISOString() : null,
-            userId: "ignored"
-        });
-        if (res) {
-            closeModal('add-product-modal');
-            document.getElementById('prod-name').value = '';
-            document.getElementById('prod-qty').value = '1';
-            document.getElementById('prod-expiry').value = '';
-            if (targetStatus === 2) loadShopping(); else loadInventory();
-        }
-    }
-
-    // --- Edit item (new in v1.1) ---
-    function openEditItemModal(itemId, name, qty) {
-        document.getElementById('edit-item-id').value = itemId;
-        document.getElementById('edit-item-apt').value = getAptId();
-        document.getElementById('edit-item-name').value = name;
-        document.getElementById('edit-item-qty').value = qty;
-        openModal('edit-item-modal');
-    }
-
-    async function executeEditItem() {
-        const itemId = document.getElementById('edit-item-id').value;
-        const aptId = document.getElementById('edit-item-apt').value;
-        const name = document.getElementById('edit-item-name').value;
-        const qty = parseFloat(document.getElementById('edit-item-qty').value);
-        if (!name || !qty || qty <= 0) return alert("Enter valid name and quantity!");
-
-        const res = await apiFetch(`/Inventory/${itemId}`, 'PATCH', {
-            itemId: itemId, apartmentId: aptId, customName: name, quantity: qty, userId: "ignored"
-        });
-        if (res !== null) { closeModal('edit-item-modal'); loadInventory(); }
-    }
-
-    async function moveToCart(itemId) {
-        const res = await apiFetch('/Inventory/move-to-cart', 'POST', { itemId: itemId, apartmentId: getAptId(), userId: "ignored" });
-        if (res !== null) loadInventory();
-    }
-
-    async function consumeItem(itemId) {
-        if (!confirm("Mark as used/consumed?")) return;
-        const res = await apiFetch('/Inventory/consume', 'POST', { itemId: itemId, apartmentId: getAptId(), userId: "ignored" });
-        if (res !== null) loadInventory();
-    }
-
-    // ==========================================
-    // 3. SHOPPING
-    // ==========================================
     async function loadShopping() {
         if (!getAptId()) return;
-        document.getElementById('cart-list').innerHTML = "Loading cart...";
+        document.getElementById('cart-list').innerHTML = "Загрузка...";
         try {
             const items = await apiFetch(`/Inventory/${getAptId()}?status=2`);
             if (items && items.length > 0) {
@@ -773,11 +984,11 @@
                 INV_CATEGORIES.forEach((catName, index) => {
                     const catItems = items.filter(i => i.category === index);
                     if (catItems.length > 0) {
-                        html += `<h4 style="margin:15px 0 5px 5px; color:var(--ios-blue); font-size:15px; text-transform:uppercase;">${catName}</h4>`;
+                        html += `<h4 style="margin:15px 0 5px 5px; color:var(--text-muted); font-size:13px; text-transform:uppercase;">${catName}</h4>`;
                         html += catItems.map(i => `
                             <div class="list-item" style="padding:10px 0;">
                                 <div style="margin-right:15px; display:flex; align-items:center;">
-                                    <input type="checkbox" style="width:22px; height:22px; margin:0; border-radius:6px;" checked onchange="toggleCartItem('${i.id}', this.checked)">
+                                    <input type="checkbox" style="width:24px; height:24px; margin:0; border-radius:8px; accent-color: var(--ios-blue);" checked onchange="toggleCartItem('${i.id}', this.checked)">
                                 </div>
                                 <div class="item-info" style="flex-grow:1;">
                                     <h4 style="margin:0;">${i.name}</h4>
@@ -791,26 +1002,86 @@
                 document.getElementById('cart-list').innerHTML = html;
             } else {
                 selectedCartItems.clear();
-                document.getElementById('cart-list').innerHTML = "<p style='text-align:center; color:gray'>Cart is empty</p>";
+                document.getElementById('cart-list').innerHTML = "<p style='text-align:center; color:gray'>Список пуст</p>";
             }
-        } catch (e) { console.error("Cart Error:", e); }
+        } catch (e) {}
+    }
+
+    function escapeHtml(text) { return (text || '').replace(/'/g, "\\'").replace(/"/g, "&quot;"); }
+
+    function openAddProductModal(targetStatus) {
+        document.getElementById('add-product-title').textContent = targetStatus === 2 ? 'Добавить в покупки' : 'В холодильник';
+        document.getElementById('prod-name').dataset.targetStatus = targetStatus;
+        document.getElementById('advanced-inventory-fields').style.display = targetStatus === 2 ? 'none' : 'block';
+        openModal('add-product-modal');
+    }
+
+    async function executeAddProduct() {
+        const name = document.getElementById('prod-name').value;
+        const qty = document.getElementById('prod-qty').value;
+        const targetStatus = parseInt(document.getElementById('prod-name').dataset.targetStatus || '0');
+        if (!name) return alert("Введите название!");
+
+        const expiryVal = document.getElementById('prod-expiry').value;
+        const res = await apiFetch('/Inventory', 'POST', {
+            apartmentId: getAptId(), customName: name, quantity: parseFloat(qty) || 1,
+            unit: parseInt(document.getElementById('prod-unit').value), status: targetStatus,
+            category: parseInt(document.getElementById('prod-category').value),
+            location: parseInt(document.getElementById('prod-location').value),
+            expiryDate: expiryVal ? new Date(expiryVal).toISOString() : null, userId: "ignored"
+        });
+        if (res) {
+            closeModal('add-product-modal');
+            document.getElementById('prod-name').value = '';
+            document.getElementById('prod-qty').value = '1';
+            document.getElementById('prod-expiry').value = '';
+            if (targetStatus === 2) loadShopping(); else loadInventory();
+        }
+    }
+
+    function openEditItemModal(itemId, name, qty) {
+        document.getElementById('edit-item-id').value = itemId;
+        document.getElementById('edit-item-apt').value = getAptId();
+        document.getElementById('edit-item-name').value = name;
+        document.getElementById('edit-item-qty').value = qty;
+        openModal('edit-item-modal');
+    }
+
+    async function executeEditItem() {
+        const itemId = document.getElementById('edit-item-id').value;
+        const aptId = document.getElementById('edit-item-apt').value;
+        const name = document.getElementById('edit-item-name').value;
+        const qty = parseFloat(document.getElementById('edit-item-qty').value);
+        if (!name || !qty || qty <= 0) return alert("Проверьте данные!");
+
+        const res = await apiFetch(`/Inventory/${itemId}`, 'PATCH', { itemId: itemId, apartmentId: aptId, customName: name, quantity: qty, userId: "ignored" });
+        if (res !== null) { closeModal('edit-item-modal'); loadInventory(); }
+    }
+
+    async function moveToCart(itemId) {
+        const res = await apiFetch('/Inventory/move-to-cart', 'POST', { itemId: itemId, apartmentId: getAptId(), userId: "ignored" });
+        if (res !== null) { loadInventory(); loadShopping(); }
+    }
+
+    async function consumeItem(itemId) {
+        const res = await apiFetch('/Inventory/consume', 'POST', { itemId: itemId, apartmentId: getAptId(), userId: "ignored" });
+        if (res !== null) loadInventory();
     }
 
     function toggleCartItem(id, isChecked) {
-        if (isChecked) selectedCartItems.add(id);
-        else selectedCartItems.delete(id);
+        if (isChecked) selectedCartItems.add(id); else selectedCartItems.delete(id);
     }
 
     async function removeFromCart(itemId) {
-        if (!confirm("Delete this item from Shopping List?")) return;
+        if (!confirm("Удалить из списка покупок?")) return;
         const res = await apiFetch(`/Inventory/${itemId}/${getAptId()}`, 'DELETE');
         if (res !== null) loadShopping();
     }
 
     async function executeCheckout() {
-        if (selectedCartItems.size === 0) return alert("Select at least one item using the checkboxes!");
+        if (selectedCartItems.size === 0) return alert("Выберите товары!");
         const amount = document.getElementById('split-amount').value;
-        if (!amount || amount <= 0) return alert("Enter valid amount!");
+        if (!amount || amount <= 0) return alert("Введите сумму чека!");
         const res = await apiFetch('/Inventory/checkout', 'POST', {
             apartmentId: getAptId(), totalAmount: parseFloat(amount),
             itemIds: Array.from(selectedCartItems), payerId: "ignored"
@@ -818,20 +1089,20 @@
         if (res) {
             closeModal('checkout-modal');
             document.getElementById('split-amount').value = '';
-            switchTab('finance', document.querySelectorAll('.tab-item')[0]);
+            switchNeighborTab('finance', document.querySelectorAll('#view-neighbors .seg-tab')[0]);
         }
     }
 
     // ==========================================
-    // 4. TASKS
+    // 3. УБОРКА
     // ==========================================
     function switchTaskMode(mode) {
         currentTaskMode = mode;
         ['active', 'history', 'schedule'].forEach(m => {
             const btn = document.getElementById(`tab-${m}-btn`);
             if (btn) {
-                btn.classList.remove('active-tab');
-                if (m === mode || (m === 'schedule' && mode === 'schedules')) btn.classList.add('active-tab');
+                btn.classList.remove('active');
+                if (m === mode || (m === 'schedule' && mode === 'schedules')) btn.classList.add('active');
             }
         });
         const showAddBtns = mode === 'active';
@@ -854,12 +1125,12 @@
                             <div class="item-info">
                                 <h4>${icon} 🔄 ${s.title}</h4>
                                 ${descHtml}
-                                <p>${s.assignedName ? `Auto-assigned to: ${s.assignedName}` : 'Auto-assigns to Anyone'}</p>
-                                <span style="color:var(--ios-blue); font-size:12px; font-weight:bold;">${getRecurrenceText(s.pattern, s.interval)} · Next: ${new Date(s.nextRunDate).toLocaleDateString()}</span>
+                                <p>${s.assignedName ? `Назначено: ${s.assignedName}` : 'Кто угодно'}</p>
+                                <span style="color:var(--ios-blue); font-size:12px; font-weight:bold;">${getRecurrenceText(s.pattern, s.interval)} · След: ${new Date(s.nextRunDate).toLocaleDateString()}</span>
                             </div>
                         </div>`;
                     }).join('')
-                    : "<p style='text-align:center; color:gray'>No active schedules</p>";
+                    : "<p style='text-align:center; color:gray'>Нет расписаний</p>";
             }
             return;
         }
@@ -871,39 +1142,39 @@
             document.getElementById('tasks-list').innerHTML = filteredTasks.length > 0
                 ? filteredTasks.map(t => {
                     const icon = CHORE_CAT_ICONS[t.category] || '📦';
-                    const dueHtml = t.dueDate ? `<span style="color:var(--ios-red); font-size:12px; font-weight:bold; display:block; margin-top:4px;">⏳ Due: ${new Date(t.dueDate).toLocaleDateString()}</span>` : '';
+                    const dueHtml = t.dueDate ? `<span style="color:var(--ios-red); font-size:12px; font-weight:bold; display:block; margin-top:4px;">⏳ До: ${new Date(t.dueDate).toLocaleDateString()}</span>` : '';
                     const descHtml = t.description ? `<p style="font-size:12px; margin-top:2px; color:var(--text-muted);">${t.description}</p>` : '';
                     let actionHtml = '';
 
                     if (t.status === 0) {
                         actionHtml = t.canComplete
-                            ? `<button class="btn-action" style="background:#E5E5EA;" onclick="completeTask('${t.id}')">Done ✓</button>`
-                            : `<span style="font-size:12px; color:gray;">In Progress</span>`;
+                            ? `<button class="btn-action" style="background:rgba(0,0,0,0.05);" onclick="completeTask('${t.id}')">Готово</button>`
+                            : `<span style="font-size:12px; color:gray;">В процессе</span>`;
                     } else if (t.status === 1) {
                         actionHtml = t.canReview
                             ? `<div style="display:flex; flex-direction:column; gap:5px; align-items:center;">
-                                <span style="font-size:10px; color:gray;">Needs Review</span>
+                                <span style="font-size:10px; color:gray; font-weight:bold; text-transform:uppercase;">На проверке</span>
                                 <div style="display:flex; gap:5px;">
                                     <button class="btn-action btn-green" onclick="confirmTask('${t.id}')">👍 OK</button>
-                                    <button class="btn-action btn-red" onclick="rejectTask('${t.id}')">👎 Fine</button>
+                                    <button class="btn-action btn-red" onclick="rejectTask('${t.id}')">👎 Штраф</button>
                                 </div>
                                </div>`
-                            : `<span style="font-size:12px; color:var(--ios-orange); font-weight:bold;">Waiting ⏳</span>`;
+                            : `<span style="font-size:12px; color:var(--ios-orange); font-weight:bold;">Ждет оценки ⏳</span>`;
                     } else {
-                        actionHtml = `<span style="color:var(--ios-green); font-weight:bold; font-size:14px;">✓ Done</span>`;
+                        actionHtml = `<span style="color:var(--ios-green); font-weight:bold; font-size:14px;">✓</span>`;
                     }
 
                     return `<div class="list-item ${t.status === 2 ? 'chore-done' : ''}">
                         <div class="item-info" style="flex-grow:1;">
                             <h4>${icon} ${t.title}</h4>
                             ${descHtml}
-                            <p>${t.assignedName ? `Assigned to: ${t.assignedName}` : 'Anyone can do it'}</p>
+                            <p>${t.assignedName ? `Назначено: ${t.assignedName}` : 'Любой'}</p>
                             ${dueHtml}
                         </div>
                         ${actionHtml}
                     </div>`;
                 }).join('')
-                : `<p style='text-align:center; color:gray'>No ${currentTaskMode} tasks</p>`;
+                : `<p style='text-align:center; color:gray'>Нет задач</p>`;
         }
     }
 
@@ -912,14 +1183,13 @@
         const desc = document.getElementById('task-desc').value;
         const category = document.getElementById('task-category').value;
         const dueDate = document.getElementById('task-due-date').value;
-        if (!title) return alert("Enter task title");
+        if (!title) return alert("Введите название");
 
         const res = await apiFetch('/Chores', 'POST', {
             apartmentId: getAptId(), title, description: desc || null,
             category: parseInt(category),
             assignedUserId: document.getElementById('task-assignee').value || null,
-            dueDate: dueDate ? new Date(dueDate).toISOString() : null,
-            userId: "ignored"
+            dueDate: dueDate ? new Date(dueDate).toISOString() : null, userId: "ignored"
         });
         if (res) {
             closeModal('add-task-modal');
@@ -935,7 +1205,7 @@
         const desc = document.getElementById('rec-task-desc').value;
         const category = document.getElementById('rec-task-category').value;
         const startDate = document.getElementById('rec-task-startdate').value;
-        if (!title || !startDate) return alert("Title and Start Date are required!");
+        if (!title || !startDate) return alert("Заполните обязательные поля!");
 
         const res = await apiFetch('/Chores/recurring', 'POST', {
             apartmentId: getAptId(), title, description: desc || null,
@@ -948,71 +1218,114 @@
         if (res) { closeModal('recurring-task-modal'); switchTaskMode('schedules'); }
     }
 
-    async function completeTask(taskId) {
-        await apiFetch(`/Chores/${taskId}/complete`, 'POST', { apartmentId: getAptId(), choreId: taskId, userId: "ignored" });
-        loadTasks();
-    }
-    async function confirmTask(taskId) {
-        await apiFetch(`/Chores/${taskId}/confirm`, 'POST', { apartmentId: getAptId(), choreId: taskId, userId: "ignored" });
-        loadTasks();
-    }
+    async function completeTask(taskId) { await apiFetch(`/Chores/${taskId}/complete`, 'POST', { apartmentId: getAptId(), choreId: taskId, userId: "ignored" }); loadTasks(); }
+    async function confirmTask(taskId) { await apiFetch(`/Chores/${taskId}/confirm`, 'POST', { apartmentId: getAptId(), choreId: taskId, userId: "ignored" }); loadTasks(); }
     async function rejectTask(taskId) {
-        if (confirm("Reject this task? A $5 penalty will be applied to the assignee.")) {
+        if (confirm("Отклонить задачу? Исполнителю будет начислен штраф $5 в вашу пользу.")) {
             await apiFetch(`/Chores/${taskId}/reject`, 'POST', { apartmentId: getAptId(), choreId: taskId, userId: "ignored" });
-            loadTasks();
-            loadFinance();
+            loadTasks(); loadFinance();
         }
     }
 
     // ==========================================
-    // 5. SETTINGS
+    // 4. ЧАТ И ВЗАИМОДЕЙСТВИЕ (Chat)
+    // ==========================================
+    async function loadChatHistory() {
+        if (!getAptId()) return;
+        const messages = await apiFetch(`/Chat/${getAptId()}`);
+        if (messages) {
+            document.getElementById('chat-messages').innerHTML = '';
+            messages.forEach(msg => appendMessageToUI(msg));
+            scrollToChatBottom();
+        }
+    }
+
+    async function sendChatMessage() {
+        const input = document.getElementById('chat-input');
+        const text = input.value.trim();
+        if (!text) return;
+
+        input.value = '';
+        await apiFetch('/Chat', 'POST', { apartmentId: getAptId(), text: text });
+    }
+
+    function handleChatEnter(e) {
+        if (e.key === 'Enter') sendChatMessage();
+    }
+
+    function sendNudge(text) {
+        apiFetch('/Chat', 'POST', { apartmentId: getAptId(), text: text });
+    }
+
+    function appendMessageToUI(msg) {
+        const myId = getCurrentUserId();
+        const isMe = msg.senderId === myId;
+
+        const container = document.getElementById('chat-messages');
+        const msgDiv = document.createElement('div');
+        msgDiv.className = `msg-bubble ${isMe ? 'msg-outgoing' : 'msg-incoming'}`;
+
+        const senderHtml = isMe ? '' : `<div class="msg-sender">${escapeHtml(msg.senderName)}</div>`;
+
+        msgDiv.innerHTML = `${senderHtml}${escapeHtml(msg.text)}`;
+        container.appendChild(msgDiv);
+        scrollToChatBottom();
+    }
+
+    function scrollToChatBottom() {
+        const container = document.getElementById('chat-messages');
+        container.scrollTop = container.scrollHeight;
+    }
+
+    // ==========================================
+    // 5. АВТОРИЗАЦИЯ И ПРОФИЛЬ
     // ==========================================
     async function executeChangePassword() {
         const oldPass = document.getElementById('cp-old').value;
         const newPass = document.getElementById('cp-new').value;
         const confirmPass = document.getElementById('cp-confirm').value;
-        if (!oldPass || !newPass) return alert("Please fill all fields");
-        if (newPass !== confirmPass) return alert("New passwords do not match!");
-        if (newPass.length < 6) return alert("Password must be at least 6 characters");
+        if (!oldPass || !newPass) return alert("Заполните поля");
+        if (newPass !== confirmPass) return alert("Пароли не совпадают!");
+        if (newPass.length < 6) return alert("Минимум 6 символов");
 
-        const res = await apiFetch('/Users/change-password', 'POST', {
-            oldPassword: oldPass, newPassword: newPass, userId: "ignored"
-        });
+        const res = await apiFetch('/Users/change-password', 'POST', { oldPassword: oldPass, newPassword: newPass, userId: "ignored" });
         if (res !== null) {
-            alert("Password changed successfully!");
-            closeModal('change-password-modal');
+            alert("Пароль изменен!"); closeModal('change-password-modal');
             ['cp-old', 'cp-new', 'cp-confirm'].forEach(id => document.getElementById(id).value = '');
         }
     }
 
     async function leaveApartment() {
-        if (!confirm("Are you sure you want to leave this apartment? Your financial history will be preserved.")) return;
-        const aptId = getAptId();
-        const res = await apiFetch('/Apartments/leave', 'POST', { apartmentId: aptId, userId: "ignored" });
+        if (!confirm("Выйти из квартиры? Финансовая история сохранится.")) return;
+        const res = await apiFetch('/Apartments/leave', 'POST', { apartmentId: getAptId(), userId: "ignored" });
         if (res !== null) {
-            alert("You have left the apartment.");
             localStorage.removeItem('aptId');
             if (hubConnection) await hubConnection.stop();
             checkAuthState();
         }
     }
 
-    // --- AUTH ---
     async function register() {
+        const isShared = document.getElementById('reg-shared').checked;
+        localStorage.setItem('coliving_mode', isShared ? 'shared' : 'solo');
+
         const res = await apiFetch('/Auth/register', 'POST', {
             email: document.getElementById('auth-email').value,
             password: document.getElementById('auth-password').value,
             name: document.getElementById('auth-name').value
         });
-        if (res?.userId) { alert("Registered! Logging you in..."); await login(); }
+        if (res?.userId) { await login(); }
     }
 
     async function login() {
+        const isShared = document.getElementById('reg-shared').checked;
+        localStorage.setItem('coliving_mode', isShared ? 'shared' : 'solo');
+
         const res = await apiFetch('/Auth/login', 'POST', {
             email: document.getElementById('auth-email').value,
             password: document.getElementById('auth-password').value
         });
-        if (res?.token) { localStorage.setItem('jwt', res.token); checkAuthState(); }
+        if (res?.token) { localStorage.setItem('jwt', res.token); checkAuthState(); switchTab('home', document.querySelector('.tab-item')); }
     }
 
     function logout() {
@@ -1022,19 +1335,20 @@
     }
 
     async function createApartment() {
-        const res = await apiFetch('/Apartments/create', 'POST', {
-            name: document.getElementById('apt-name').value, creatorUserId: "ignored"
-        });
+        const res = await apiFetch('/Apartments/create', 'POST', { name: document.getElementById('apt-name').value, creatorUserId: "ignored" });
         if (res?.apartmentId) { localStorage.setItem('aptId', res.apartmentId); checkAuthState(); }
     }
 
     async function joinApartment() {
-        const res = await apiFetch('/Apartments/join', 'POST', {
-            inviteCode: document.getElementById('invite-code').value, userId: "ignored"
-        });
-        if (res?.apartmentId) { localStorage.setItem('aptId', res.apartmentId); checkAuthState(); }
+        const res = await apiFetch('/Apartments/join', 'POST', { inviteCode: document.getElementById('invite-code').value, userId: "ignored" });
+        if (res?.apartmentId) {
+            localStorage.setItem('aptId', res.apartmentId);
+            localStorage.setItem('coliving_mode', 'shared');
+            checkAuthState();
+        }
     }
 
+    // Инициализация
     checkAuthState();
 </script>
 </body>

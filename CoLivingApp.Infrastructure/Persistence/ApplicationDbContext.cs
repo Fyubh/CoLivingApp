@@ -32,6 +32,7 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
     public DbSet<Chore> Chores => Set<Chore>();
     public DbSet<RecurringExpense> RecurringExpenses => Set<RecurringExpense>();
     public DbSet<RecurringChore> RecurringChores => Set<RecurringChore>();
+    public DbSet<ChatMessage> ChatMessages => Set<ChatMessage>();
 
 
     /// <summary>
