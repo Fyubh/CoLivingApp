@@ -97,4 +97,11 @@ app.UseAuthorization();
 app.MapControllers();
 app.MapHub<CoLivingApp.Api.Hubs.CoLivingHub>("/hubs/coliving");
 
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    await db.Database.MigrateAsync();
+    await CoLivingApp.Infrastructure.Seeders.TheFizzPragueSeeder.SeedAsync(app.Services);
+}
+
 app.Run();

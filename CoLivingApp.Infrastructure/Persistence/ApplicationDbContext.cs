@@ -1,8 +1,10 @@
 // Файл: ApplicationDbContext.cs
 using System.Reflection;
+using CoLivingApp.Application.Abstractions;
+using CoLivingApp.Domain.Common;
 using CoLivingApp.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
-using CoLivingApp.Application.Abstractions;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 
 namespace CoLivingApp.Infrastructure.Persistence;
 
@@ -12,15 +14,12 @@ namespace CoLivingApp.Infrastructure.Persistence;
 /// </summary>
 public class ApplicationDbContext : DbContext, IApplicationDbContext
 {
-    // Конструктор принимает настройки (например, строку подключения к БД)
-    // и передает их в базовый класс DbContext.
-    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) 
-        : base(options) 
-    { 
+    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+        : base(options)
+    {
     }
 
-    // DbSet - это представление таблицы в базе данных. 
-    // Через эти свойства мы будем делать запросы (LINQ) и сохранять данные.
+    // === Старые DbSet (roommate-layer) ===
     public DbSet<User> Users => Set<User>();
     public DbSet<Apartment> Apartments => Set<Apartment>();
     public DbSet<ApartmentMember> ApartmentMembers => Set<ApartmentMember>();
@@ -35,18 +34,66 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
     public DbSet<ChatMessage> ChatMessages => Set<ChatMessage>();
     public DbSet<Incident> Incidents => Set<Incident>();
 
+    // === НОВЫЕ DbSet: building-layer ===
+    public DbSet<Operator> Operators => Set<Operator>();
+    public DbSet<Building> Buildings => Set<Building>();
+    public DbSet<Floor> Floors => Set<Floor>();
+    public DbSet<Room> Rooms => Set<Room>();
 
-    /// <summary>
-    /// Этот метод вызывается один раз при старте приложения, когда EF Core 
-    /// строит модель базы данных в памяти.
-    /// </summary>
+    // === Staff & Maintenance layer ===
+    public DbSet<StaffAssignment> StaffAssignments => Set<StaffAssignment>();
+    public DbSet<MaintenanceRequest> MaintenanceRequests => Set<MaintenanceRequest>();
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
-        
-        // Магия чистого кода: вместо того чтобы писать сотни строк настроек прямо здесь,
-        // мы говорим EF Core: "Просканируй этот проект и найди все классы, 
-        // которые реализуют IEntityTypeConfiguration, и примени их".
+
+        // Автоматически находит и применяет все IEntityTypeConfiguration из сборки.
         modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
+    }
+
+    /// <summary>
+    /// Переопределяем SaveChanges, чтобы автоматически заполнять UpdatedAt для EntityBase.
+    /// Так нигде в handler'ах не нужно руками писать entity.UpdatedAt = DateTime.UtcNow.
+    /// 
+    /// ПРИМЕЧАНИЕ: CreatedById/UpdatedById пока НЕ заполняем автоматически — это потребует
+    /// ICurrentUserService, который добавим, когда появится первый handler работающий
+    /// с новыми entities. Пока заполнение ложится на Command handler.
+    /// </summary>
+    public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        ApplyAuditInformation();
+        return base.SaveChangesAsync(cancellationToken);
+    }
+
+    private void ApplyAuditInformation()
+    {
+        var entries = ChangeTracker.Entries<EntityBase>();
+        var now = DateTime.UtcNow;
+
+        foreach (EntityEntry<EntityBase> entry in entries)
+        {
+            switch (entry.State)
+            {
+                case EntityState.Added:
+                    // CreatedAt уже выставлен дефолтом в самой entity,
+                    // но на случай если кто-то перезаписал — оставляем как есть.
+                    break;
+
+                case EntityState.Modified:
+                    entry.Entity.UpdatedAt = now;
+                    // Защита от случайного изменения CreatedAt через tracked update
+                    entry.Property(e => e.CreatedAt).IsModified = false;
+                    break;
+
+                case EntityState.Deleted:
+                    // Конвертируем hard delete в soft delete.
+                    // Если реально нужен физический delete — делается через raw SQL или отдельный метод.
+                    entry.State = EntityState.Modified;
+                    entry.Entity.IsDeleted = true;
+                    entry.Entity.DeletedAt = now;
+                    entry.Entity.UpdatedAt = now;
+                    break;
+            }
+        }
     }
 }
