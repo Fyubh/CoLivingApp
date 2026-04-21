@@ -25,11 +25,9 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, Result<string>>
     {
         var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == request.Email, cancellationToken);
         
-        // Проверяем существование юзера и совпадение пароля
         if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
             return Result<string>.Failure("Неверный email или пароль.");
 
-        // Генерируем JWT токен
         var tokenHandler = new JwtSecurityTokenHandler();
         var key = Encoding.ASCII.GetBytes(_configuration["JwtSettings:Secret"]!);
         
@@ -37,11 +35,15 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, Result<string>>
         {
             Subject = new ClaimsIdentity(new[]
             {
-                new Claim(ClaimTypes.NameIdentifier, user.Id), // Зашиваем ID юзера в токен!
+                new Claim(ClaimTypes.NameIdentifier, user.Id),
                 new Claim(ClaimTypes.Email, user.Email),
-                new Claim(ClaimTypes.Name, user.Name)
+                new Claim(ClaimTypes.Name, user.Name),
+                
+                // НОВЫЕ СТРОКИ: Добавляем роль и уровень доступа
+                new Claim(ClaimTypes.Role, user.Role.ToString()),
+                new Claim("AccessLevel", user.AccessLevel.ToString())
             }),
-            Expires = DateTime.UtcNow.AddDays(7), // Токен живет 7 дней
+            Expires = DateTime.UtcNow.AddDays(7),
             SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
         };
 

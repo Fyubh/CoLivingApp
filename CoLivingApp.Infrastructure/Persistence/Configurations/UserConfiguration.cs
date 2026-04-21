@@ -8,14 +8,22 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
 {
     public void Configure(EntityTypeBuilder<User> builder)
     {
-        // Указываем, что свойство Id является первичным ключом (Primary Key)
         builder.HasKey(u => u.Id);
         
-        // Настраиваем колонку Email: обязательна для заполнения (NOT NULL) 
-        // и имеет максимальную длину 256 символов (как в стандарте ASP.NET Identity)
         builder.Property(u => u.Email).IsRequired().HasMaxLength(256);
-        
-        // Настраиваем колонку Name
         builder.Property(u => u.Name).IsRequired().HasMaxLength(100);
+
+        // Настройки новых полей
+        builder.Property(u => u.Role)
+            .HasConversion<string>() // Сохраняем Enum как строку ("Tenant", "Admin")
+            .IsRequired();
+
+        builder.Property(u => u.AccessLevel)
+            .HasDefaultValue(1)
+            .IsRequired();
+
+        builder.Property(u => u.KarmaScore)
+            .HasDefaultValue(100) // Стартовая карма для всех — 100 баллов
+            .IsRequired();
     }
 }

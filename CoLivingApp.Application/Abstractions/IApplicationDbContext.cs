@@ -18,6 +18,6 @@ public interface IApplicationDbContext
     DbSet<RecurringExpense> RecurringExpenses { get; }
     DbSet<RecurringChore> RecurringChores { get; }
     DbSet<ChatMessage> ChatMessages { get; }
-
+    DbSet<Incident> Incidents { get; }
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }

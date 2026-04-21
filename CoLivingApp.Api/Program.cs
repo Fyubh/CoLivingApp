@@ -32,6 +32,20 @@ builder.Services.AddScoped<IApplicationDbContext>(provider =>
     provider.GetRequiredService<ApplicationDbContext>());
 builder.Services.AddMediatR(cfg => 
     cfg.RegisterServicesFromAssembly(typeof(CoLivingApp.Application.Features.Apartments.Commands.CreateApartment.CreateApartmentCommand).Assembly));
+
+// ДОБАВЛЯЕМ CORS (Разрешаем React-приложению делать запросы)
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAdminPanel", policy =>
+    {
+        // Укажи здесь порт твоего Vite-приложения (обычно 5173)
+        policy.WithOrigins("http://localhost:5173") 
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials(); // Важно для SignalR в будущем
+    });
+});
+
 // НАСТРОЙКА JWT АВТОРИЗАЦИИ
 var jwtSecret = builder.Configuration["JwtSettings:Secret"];
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -67,6 +81,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+app.UseCors("AllowAdminPanel");
 
 // ВНИМАНИЕ: app.UseHttpsRedirection() УДАЛЕН, чтобы не ломать локальные запросы по HTTP!
 

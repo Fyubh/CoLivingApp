@@ -1,0 +1,21 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url("https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css");
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+    background-color: theme('colors.ios.bg');
+    background-image: radial-gradient(circle at 100% 0%, #E5F1FF 0%, transparent 40%),
+    radial-gradient(circle at 0% 100%, #F5E8FF 0%, transparent 40%);
+    background-attachment: fixed;
+    color: theme('colors.ios.text');
+    -webkit-font-smoothing: antialiased;
+    margin: 0;
+}
+
+/* Класс для Glassmorphism карточек из твоего дизайна */
+.glass-card {
+    @apply bg-ios-card backdrop-blur-ios border border-white/40 rounded-ios p-6 shadow-ios-card transition-all;
+}
