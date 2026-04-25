@@ -2,6 +2,7 @@ using CoLivingApp.Application.Features.Apartments.Commands.CreateApartment;
 using CoLivingApp.Application.Features.Apartments.Commands.JoinApartment;
 using CoLivingApp.Application.Features.Apartments.Commands.LeaveApartment;
 using CoLivingApp.Application.Features.Apartments.Queries.GetApartment;
+using CoLivingApp.Application.Features.Apartments.Queries.GetMyApartmentContext;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -52,6 +53,16 @@ public class ApartmentsController : ControllerBase
     public async Task<IActionResult> Get(Guid id)
     {
         var result = await _mediator.Send(new GetApartmentQuery(id));
+        return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
+    }
+    
+    [HttpGet("my-context")]
+    public async Task<IActionResult> GetMyContext()
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId)) return Unauthorized();
+ 
+        var result = await _mediator.Send(new GetMyApartmentContextQuery(userId));
         return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
     }
 }

@@ -6,6 +6,7 @@
 
   <ItemGroup>
     <Folder Include="Behaviors\" />
+    <Folder Include="Features\Maintenance\CancelMaintenance\" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,4 +1,6 @@
+using System.Security.Claims;
 using CoLivingApp.Application.Features.Users.Commands.Auth;
+using CoLivingApp.Application.Features.Apartments.Queries.GetMyApartmentContext;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
@@ -24,5 +26,15 @@ public class AuthController : ControllerBase
     {
         var result = await _mediator.Send(command);
         return result.IsSuccess ? Ok(new { token = result.Value }) : Unauthorized(new { error = result.Error });
+    }
+    
+    [HttpGet("my-context")]
+    public async Task<IActionResult> GetMyContext()
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId)) return Unauthorized();
+ 
+        var result = await _mediator.Send(new GetMyApartmentContextQuery(userId));
+        return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
     }
 }

@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Co-Living · Admin Panel</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.0/signalr.min.js"></script>
+    <style>
+        :root {
+            --bg: #F2F2F7;
+            --card: #FFFFFF;
+            --text: #000;
+            --muted: #8E8E93;
+            --blue: #007AFF;
+            --red: #FF3B30;
+            --green: #34C759;
+            --orange: #FF9500;
+            --purple: #AF52DE;
+            --border: rgba(0,0,0,0.08);
+        }
+        @media (prefers-color-scheme: dark) {
+            :root { --bg: #000; --card: #1C1C1E; --text: #FFF; --border: rgba(255,255,255,0.1); }
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            padding: 20px;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .top-bar h1 { margin: 0; font-size: 26px; }
+        .top-bar .sub { font-size: 13px; color: var(--muted); margin-top: 2px; }
+        .top-bar .user { font-size: 13px; color: var(--muted); }
+        .top-bar a.logout { color: var(--red); margin-left: 10px; cursor: pointer; text-decoration: none; }
+        .top-bar a.nav { color: var(--blue); text-decoration: none; font-size: 14px; margin-right: 14px; }
+
+        .card {
+            background: var(--card);
+            border-radius: 16px;
+            padding: 18px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .stat {
+            background: var(--card);
+            border-radius: 12px;
+            padding: 14px;
+            text-align: center;
+        }
+        .stat .num { font-size: 28px; font-weight: 700; }
+        .stat .lbl { font-size: 12px; color: var(--muted); margin-top: 4px; }
+        .stat.reported .num { color: var(--blue); }
+        .stat.ack .num, .stat.assigned .num { color: var(--orange); }
+        .stat.progress .num { color: var(--purple); }
+        .stat.urgent .num { color: var(--red); }
+
+        .filters {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+        .chip {
+            padding: 6px 14px;
+            border-radius: 20px;
+            background: rgba(0,0,0,0.05);
+            cursor: pointer;
+            font-size: 13px;
+            border: 1px solid transparent;
+            user-select: none;
+        }
+        .chip.active { background: var(--blue); color: white; }
+
+        table { width: 100%; border-collapse: collapse; }
+        th, td {
+            padding: 12px 10px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+            font-size: 13px;
+            vertical-align: top;
+        }
+        th { color: var(--muted); font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+        tr:last-child td { border-bottom: none; }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .row-title { font-weight: 600; font-size: 14px; margin-bottom: 2px; }
+        .row-desc  { font-size: 12px; color: var(--muted); max-width: 280px; }
+
+        .btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            margin: 2px;
+        }
+        .btn-blue { background: var(--blue); color: white; }
+        .btn-ghost { background: rgba(0,122,255,0.1); color: var(--blue); }
+        .btn-green { background: rgba(52,199,89,0.1); color: #1F7A37; }
+        .btn-danger { background: rgba(255,59,48,0.1); color: #C93400; }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .modal-overlay.open { display: flex; }
+        .modal {
+            background: var(--card);
+            border-radius: 16px;
+            padding: 20px;
+            width: 100%;
+            max-width: 460px;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+        .modal-header span[role="button"] {
+            color: var(--blue); cursor: pointer; font-weight: 500;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--bg);
+            font-size: 14px;
+            margin-bottom: 10px;
+            color: var(--text);
+            font-family: inherit;
+        }
+        input:focus, select:focus { outline: 2px solid var(--blue); outline-offset: -1px; }
+
+        #toast {
+            position: fixed; bottom: 20px; left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.85); color: white;
+            padding: 10px 18px; border-radius: 10px;
+            opacity: 0; transition: opacity 0.2s;
+            pointer-events: none; z-index: 200; font-size: 14px;
+        }
+        #toast.show { opacity: 1; }
+
+        .empty {
+            text-align: center; padding: 40px 10px; color: var(--muted);
+        }
+
+        /* Soft-hide вместо display:none — сохраняет высоту таблицы при фильтрации */
+        tr.hidden { display: none; }
+    </style>
+</head>
+<body>
+
+<div class="top-bar">
+    <div>
+        <h1>🏢 Admin Panel</h1>
+        <div class="sub" id="building-sub">Загрузка…</div>
+    </div>
+    <div>
+        <a href="/" class="nav">← резидент</a>
+        <a href="/maintenance.html" class="nav">жилец (тест)</a>
+        <span class="user" id="user-info"></span>
+    </div>
+</div>
+
+<!-- ===== AUTH ===== -->
+<div id="auth-block" class="card" style="display:none;">
+    <h3 style="margin-top:0;">Вход для администратора</h3>
+    <input type="email" id="login-email" placeholder="Email" autocomplete="email">
+    <input type="password" id="login-password" placeholder="Пароль" autocomplete="current-password">
+    <button class="btn btn-blue" style="width:100%; padding: 12px;" onclick="doLogin()">Войти</button>
+    <p style="font-size:12px; color:var(--muted); margin-top:10px;">
+        Тестовый админ: <code>maria.admin@fizz.test / fizz123!</code>
+    </p>
+</div>
+
+<!-- ===== MAIN ===== -->
+<div id="main-content" style="display:none;">
+
+    <div class="stats" id="stats-row">
+        <div class="stat reported"><div class="num" id="stat-reported">—</div><div class="lbl">Новых</div></div>
+        <div class="stat ack"><div class="num" id="stat-ack">—</div><div class="lbl">Принято</div></div>
+        <div class="stat assigned"><div class="num" id="stat-assigned">—</div><div class="lbl">Назначено</div></div>
+        <div class="stat progress"><div class="num" id="stat-progress">—</div><div class="lbl">В работе</div></div>
+        <div class="stat urgent"><div class="num" id="stat-urgent">—</div><div class="lbl">🔴 Срочных</div></div>
+    </div>
+
+    <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
+            <h3 style="margin:0;">Заявки на ремонт</h3>
+            <span style="font-size:12px; color:var(--muted);">
+        Live · SignalR <span id="signalr-status">🔄</span>
+      </span>
+        </div>
+
+        <div class="filters" id="status-filters">
+            <div class="chip active" data-s="">Все</div>
+            <div class="chip" data-s="Reported">Новые</div>
+            <div class="chip" data-s="Acknowledged">Принятые</div>
+            <div class="chip" data-s="Assigned">Назначенные</div>
+            <div class="chip" data-s="InProgress">В работе</div>
+            <div class="chip" data-s="Completed">Готовые</div>
+        </div>
+
+        <div style="overflow-x:auto;">
+            <table id="req-table">
+                <thead>
+                <tr>
+                    <th>Заявка</th>
+                    <th>Приор.</th>
+                    <th>Статус</th>
+                    <th>Где</th>
+                    <th>От кого</th>
+                    <th>Подрядчик</th>
+                    <th>Создана</th>
+                    <th>Действия</th>
+                </tr>
+                </thead>
+                <tbody id="req-tbody"><tr><td colspan="8" class="empty">Загрузка…</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Staff card (read-only, с hint про invite в будущем) -->
+    <div class="card">
+        <h3 style="margin-top:0;">Команда здания</h3>
+        <p style="font-size:12px; color:var(--muted); margin-top:-6px;">
+            Создание аккаунтов жильцов и сотрудников — в следующем обновлении (Onboarding module).
+        </p>
+        <div id="staff-list">Загрузка…</div>
+    </div>
+</div>
+
+<!-- ===== Модал: назначить подрядчика ===== -->
+<div class="modal-overlay" id="assign-modal">
+    <div class="modal">
+        <div class="modal-header">
+            <span role="button" onclick="closeModal('assign-modal')">Отмена</span>
+            <span>Назначить подрядчика</span>
+            <span role="button" onclick="submitAssign()">Назначить</span>
+        </div>
+
+        <input type="hidden" id="assign-maintenance-id">
+        <p style="font-size:13px; color:var(--muted); margin:0 0 10px;">
+            <span id="assign-context"></span>
+        </p>
+
+        <label style="font-size:13px; color:var(--muted); display:block; margin-bottom:4px;">Кому назначить</label>
+        <select id="assign-staff-select"></select>
+    </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+    /* =========================================================================
+     *  ADMIN PANEL — self-contained, одна страница
+     *  Auth: использует тот же JWT в localStorage, что index.html и maintenance.html
+     *  API: только endpoints, которые уже есть в phase 1-3
+     * ========================================================================= */
+
+    const API = '/api';
+
+    const STATUS_LABELS = {
+        Reported:     { t: 'Новая',     c: '#007AFF' },
+        Acknowledged: { t: 'Принято',   c: '#FF9500' },
+        Assigned:     { t: 'Назначено', c: '#FF9500' },
+        InProgress:   { t: 'В работе',  c: '#AF52DE' },
+        Completed:    { t: 'Готово',    c: '#34C759' },
+        Cancelled:    { t: 'Отменено',  c: '#8E8E93' },
+        Rejected:     { t: 'Отклонено', c: '#FF3B30' }
+    };
+    const PRIORITY_ICONS = { Low: '🟢', Normal: '🟡', High: '🟠', Urgent: '🔴' };
+    const CAT_ICONS = {
+        Plumbing: '🔧', Electric: '⚡️', Furniture: '🪑', Appliance: '🧺',
+        Hvac: '❄️', WindowsAndDoors: '🚪', Cleaning: '🧹', Internet: '🌐', Other: '📦'
+    };
+
+    let currentBuilding = null; // { id, name }
+    let allRequests = [];
+    let allStaff = [];
+    let hub = null;
+    let currentStatusFilter = '';
+
+    /* ========== Utilities ========== */
+
+    function token()      { return localStorage.getItem('jwt'); }
+    function saveToken(t) { localStorage.setItem('jwt', t); }
+    function clearToken() { localStorage.removeItem('jwt'); }
+
+    function parseJwt(t) {
+        try { return JSON.parse(atob(t.split('.')[1])); } catch(e) { return null; }
+    }
+
+    function myUserId() {
+        const t = token(); if (!t) return null;
+        const d = parseJwt(t); if (!d) return null;
+        return d['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'];
+    }
+
+    function myUserName() {
+        const t = token(); if (!t) return null;
+        const d = parseJwt(t); if (!d) return null;
+        return d['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'];
+    }
+
+    function myRole() {
+        const t = token(); if (!t) return null;
+        const d = parseJwt(t); if (!d) return null;
+        return d['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'];
+    }
+
+    function esc(s) {
+        if (s == null) return '';
+        return String(s).replace(/[&<>"']/g, c => ({
+            '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+        }[c]));
+    }
+
+    function toast(msg) {
+        const t = document.getElementById('toast');
+        t.textContent = msg; t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 2000);
+    }
+
+    async function api(endpoint, method = 'GET', body = null) {
+        const headers = { 'Content-Type': 'application/json' };
+        if (token()) headers['Authorization'] = `Bearer ${token()}`;
+        const opts = { method, headers };
+        if (body) opts.body = JSON.stringify(body);
+
+        try {
+            const res = await fetch(`${API}${endpoint}`, opts);
+            if (res.status === 401) {
+                toast('Сессия истекла'); clearToken();
+                setTimeout(() => render(), 500); return null;
+            }
+            if (res.status === 403) {
+                toast('Нет доступа'); return null;
+            }
+            const data = await res.json().catch(() => null);
+            if (!res.ok) { toast(data?.error || 'Ошибка'); return null; }
+            return data ?? true;
+        } catch (e) {
+            console.error(e); toast('Сеть недоступна'); return null;
+        }
+    }
+
+    function openModal(id)  { document.getElementById(id).classList.add('open'); }
+    function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+    /* ========== Auth ========== */
+
+    async function doLogin() {
+        const email = document.getElementById('login-email').value.trim();
+        const password = document.getElementById('login-password').value;
+        if (!email || !password) return toast('Заполни оба поля');
+
+        const res = await api('/Auth/login', 'POST', { email, password });
+        if (res?.token) {
+            saveToken(res.token);
+            const role = myRole();
+            if (role !== 'Admin' && role !== 'SuperAdmin') {
+                toast('Этот аккаунт не админ');
+                clearToken();
+                return;
+            }
+            await render();
+        }
+    }
+
+    function doLogout() {
+        if (hub) { hub.stop(); hub = null; }
+        clearToken();
+        currentBuilding = null;
+        render();
+    }
+
+    /* ========== Поиск "моего" здания ==========
+       Временное решение: админ входит, мы ищем его StaffAssignment через
+       первое здание, где у него есть открытые заявки. Либо fallback на
+       The Fizz Prague (единственное в сиде).
+       В онбординг-чате заменим на отдельный endpoint /api/admin/my-buildings. */
+
+    async function resolveBuilding() {
+        // Пока что для MVP берём дашборд — он и так покажет суммарные цифры по всем зданиям,
+        // где у юзера есть админ-права. А для фильтра заявок просто подставим здание из
+        // первой любой заявки. Эту логику ПЕРЕДЕЛАЕМ в онбординг-чате на правильную.
+
+        // Временный хак: пытаемся через /api/admin/dashboard. Если не получилось —
+        // просим юзера ввести BuildingId вручную (это для разработки, не для прода).
+        const dash = await api('/admin/dashboard');
+        if (!dash) return null;
+
+        // Угадываем BuildingId: делаем запрос без buildingId нельзя, но можем попробовать
+        // достать его через staffassignments юзера. В phase 3 такого endpoint'а пока нет,
+        // поэтому временно зашиваем через localStorage — админ один раз вводит, потом помним.
+
+        let bid = localStorage.getItem('admin_building_id');
+        if (!bid) {
+            bid = prompt(
+                'BuildingId The Fizz Prague\n\n' +
+                '(это временная мера — в следующей версии будет автовыбор).\n' +
+                'Возьми Guid из БД:\n\n' +
+                "  SELECT \"Id\" FROM \"Buildings\" WHERE \"Name\" = 'The Fizz Prague';"
+            );
+            if (!bid) return null;
+            localStorage.setItem('admin_building_id', bid.trim());
+        }
+
+        // Пробуем загрузить — если 400, значит не подходит.
+        const test = await api(`/Maintenance/building/${bid}`);
+        if (test === null) {
+            localStorage.removeItem('admin_building_id');
+            return null;
+        }
+
+        return { id: bid, name: 'The Fizz Prague' };
+    }
+
+    /* ========== Загрузка данных ========== */
+
+    async function loadRequests() {
+        if (!currentBuilding) return;
+
+        const items = await api(`/Maintenance/building/${currentBuilding.id}`);
+        if (!items) {
+            document.getElementById('req-tbody').innerHTML =
+                '<tr><td colspan="8" class="empty">Не удалось загрузить</td></tr>';
+            return;
+        }
+
+        allRequests = items;
+        renderStats();
+        renderTable();
+    }
+
+    async function loadStaffHint() {
+        // У нас нет отдельного endpoint'а GetBuildingStaff, но staff нужен для
+        // dropdown'а Assign. Временно: при первом Assign подтягиваем один раз
+        // через /admin/tenants (там все пользователи) + фильтр по роли на клиенте.
+        // В следующей сессии добавим /api/admin/building/{id}/staff.
+        const users = await api('/admin/tenants');
+        if (users) {
+            allStaff = users.filter(u => u.role === 'Staff' || u.role === 'Admin');
+            renderStaffList();
+        }
+    }
+
+    function renderStaffList() {
+        const container = document.getElementById('staff-list');
+        if (allStaff.length === 0) {
+            container.innerHTML = '<p class="empty">Сотрудники не найдены</p>';
+            return;
+        }
+        container.innerHTML = allStaff.map(u => `
+    <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border);">
+      <div>
+        <div style="font-weight:500;">${esc(u.name)}</div>
+        <div style="font-size:12px; color:var(--muted);">${esc(u.email)} · ${esc(u.role)}</div>
+      </div>
+      <span class="badge" style="background:rgba(0,122,255,0.1); color:var(--blue); align-self:center;">
+        Карма: ${u.karmaScore}
+      </span>
+    </div>
+  `).join('');
+    }
+
+    /* ========== Статистика и таблица ========== */
+
+    function renderStats() {
+        const by = {};
+        for (const r of allRequests) {
+            by[r.status] = (by[r.status] || 0) + 1;
+        }
+        const urgent = allRequests.filter(r =>
+            r.priority === 'Urgent' && r.status !== 'Completed' && r.status !== 'Cancelled'
+        ).length;
+
+        document.getElementById('stat-reported').textContent = by.Reported || 0;
+        document.getElementById('stat-ack').textContent = by.Acknowledged || 0;
+        document.getElementById('stat-assigned').textContent = by.Assigned || 0;
+        document.getElementById('stat-progress').textContent = by.InProgress || 0;
+        document.getElementById('stat-urgent').textContent = urgent;
+    }
+
+    function renderTable() {
+        const tbody = document.getElementById('req-tbody');
+        const filtered = currentStatusFilter
+            ? allRequests.filter(r => r.status === currentStatusFilter)
+            : allRequests;
+
+        if (filtered.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="8" class="empty">Пусто по этому фильтру</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = filtered.map(renderRow).join('');
+    }
+
+    function renderRow(r) {
+        const status = STATUS_LABELS[r.status] || { t: r.status, c: '#8E8E93' };
+        const pIcon = PRIORITY_ICONS[r.priority] || '';
+        const cIcon = CAT_ICONS[r.category] || '📦';
+        const created = new Date(r.createdAt).toLocaleString([], {
+            day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
+        });
+
+        const where = [r.unitNumber, r.roomNumber].filter(Boolean).join(' / ') || '—';
+
+        let actions = [];
+        if (r.status === 'Reported') {
+            actions.push(`<button class="btn btn-ghost" onclick="ackRequest('${r.id}')">✓ Принять</button>`);
+            actions.push(`<button class="btn btn-blue" onclick="openAssignModal('${r.id}', '${esc(r.title)}')">→ Назначить</button>`);
+        } else if (r.status === 'Acknowledged') {
+            actions.push(`<button class="btn btn-blue" onclick="openAssignModal('${r.id}', '${esc(r.title)}')">→ Назначить</button>`);
+        } else if (r.status === 'Assigned' || r.status === 'InProgress') {
+            actions.push(`<button class="btn btn-ghost" onclick="openAssignModal('${r.id}', '${esc(r.title)}')">Переназначить</button>`);
+        } else if (r.status === 'Completed' && r.residentRating) {
+            actions.push(`<span style="font-size:12px; color:var(--muted);">${'⭐'.repeat(r.residentRating)}</span>`);
+        }
+
+        return `
+    <tr>
+      <td>
+        <div class="row-title">${pIcon} ${cIcon} ${esc(r.title)}</div>
+        <div class="row-desc">${esc(r.description)}</div>
+      </td>
+      <td><span class="badge" style="background:${status.c}15; color:${status.c};">${r.priority}</span></td>
+      <td><span class="badge" style="background:${status.c}20; color:${status.c};">${status.t}</span></td>
+      <td style="font-size:12px;">${esc(where)}</td>
+      <td style="font-size:12px;">${esc(r.reporterName)}</td>
+      <td style="font-size:12px;">${r.assignedStaffName ? esc(r.assignedStaffName) : '—'}</td>
+      <td style="font-size:12px; color:var(--muted); white-space:nowrap;">${created}</td>
+      <td style="white-space:nowrap;">${actions.join('') || '—'}</td>
+    </tr>`;
+    }
+
+    /* ========== Фильтры ========== */
+
+    document.addEventListener('click', e => {
+        const chip = e.target.closest('#status-filters .chip');
+        if (!chip) return;
+        document.querySelectorAll('#status-filters .chip').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        currentStatusFilter = chip.dataset.s;
+        renderTable();
+    });
+
+    /* ========== Actions ========== */
+
+    async function ackRequest(id) {
+        const res = await api(`/Maintenance/${id}/acknowledge`, 'POST');
+        if (res) { toast('Принято'); await loadRequests(); }
+    }
+
+    function openAssignModal(maintenanceId, title) {
+        document.getElementById('assign-maintenance-id').value = maintenanceId;
+        document.getElementById('assign-context').textContent = `Заявка: ${title}`;
+
+        // Заполняем список сотрудников. Нам нужны их StaffAssignmentId, а не UserId.
+        // Временно: endpoint'а для списка staff с AssignmentId в этом здании нет.
+        // Проблема: API Assign принимает staffAssignmentId, а список у нас
+        // на уровне User. Поэтому сделаем обходной путь — попросим ввести ID вручную.
+        //
+        // Для следующей сессии: добавим GET /api/admin/buildings/{id}/staff
+        // с полями { staffAssignmentId, userName, role, specialization, isOnShift }.
+
+        const select = document.getElementById('assign-staff-select');
+
+        // На этапе MVP вытащим staffAssignmentId из SQL и зашьём в localStorage
+        // либо попросим ввести в форме. Сделаем второй вариант, но с подсказкой.
+        select.innerHTML = `
+    <option value="">-- Введите StaffAssignmentId вручную --</option>
+  `;
+
+        // Делаем поле ввода динамически, заменяя select.
+        select.outerHTML = `
+    <input type="text" id="assign-staff-select" placeholder="StaffAssignmentId (GUID)">
+    <p style="font-size:11px; color:var(--muted); margin:-4px 0 10px;">
+      Временно: возьми Guid из БД.<br>
+      <code style="font-size:10px;">SELECT sa."Id", u."Name", sa."Specialization" FROM "StaffAssignments" sa JOIN "Users" u ON u."Id" = sa."UserId" WHERE sa."BuildingId" = '${currentBuilding.id}';</code>
+    </p>
+  `;
+
+        openModal('assign-modal');
+    }
+
+    async function submitAssign() {
+        const maintenanceId = document.getElementById('assign-maintenance-id').value;
+        const staffId = document.getElementById('assign-staff-select').value.trim();
+        if (!staffId) return toast('Нужен StaffAssignmentId');
+
+        const res = await api(`/Maintenance/${maintenanceId}/assign`, 'POST', {
+            staffAssignmentId: staffId
+        });
+        if (res) {
+            toast('Назначено');
+            closeModal('assign-modal');
+            await loadRequests();
+        }
+    }
+
+    /* ========== SignalR ========== */
+
+    async function setupSignalR() {
+        if (hub) return;
+        hub = new signalR.HubConnectionBuilder()
+            .withUrl('/hubs/coliving').withAutomaticReconnect().build();
+
+        hub.on('BuildingMaintenanceChanged', () => {
+            loadRequests();
+        });
+
+        hub.onreconnected(() => document.getElementById('signalr-status').textContent = '✓');
+        hub.onclose(() => document.getElementById('signalr-status').textContent = '⚠️');
+
+        try {
+            await hub.start();
+            if (currentBuilding) {
+                await hub.invoke('JoinBuildingAdminGroup', currentBuilding.id);
+            }
+            document.getElementById('signalr-status').textContent = '✓';
+        } catch (e) {
+            console.error(e);
+            document.getElementById('signalr-status').textContent = '⚠️';
+        }
+    }
+
+    /* ========== Render ========== */
+
+    async function render() {
+        const authed = !!token();
+        const role = myRole();
+        const isAdmin = authed && (role === 'Admin' || role === 'SuperAdmin');
+
+        document.getElementById('auth-block').style.display = isAdmin ? 'none' : 'block';
+        document.getElementById('main-content').style.display = isAdmin ? 'block' : 'none';
+
+        if (!isAdmin) {
+            document.getElementById('user-info').innerHTML = '';
+            if (authed && !isAdmin) {
+                document.getElementById('auth-block').innerHTML =
+                    '<h3 style="margin-top:0;">Доступ закрыт</h3>' +
+                    '<p>Этот аккаунт не админ. <a href="#" onclick="doLogout();return false;">Выйти</a></p>';
+            }
+            return;
+        }
+
+        document.getElementById('user-info').innerHTML =
+            `${esc(myUserName() || '')} · <a class="logout" onclick="doLogout()">выйти</a>`;
+
+        if (!currentBuilding) {
+            currentBuilding = await resolveBuilding();
+            if (!currentBuilding) {
+                document.getElementById('building-sub').textContent =
+                    '⚠️ не удалось определить здание';
+                return;
+            }
+        }
+
+        document.getElementById('building-sub').textContent = `📍 ${currentBuilding.name}`;
+
+        await Promise.all([loadRequests(), loadStaffHint()]);
+        await setupSignalR();
+    }
+
+    render();
+</script>
+</body>
+</html>

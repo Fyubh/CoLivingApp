@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <title>Co-Living · Заявки на ремонт (тест)</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.0/signalr.min.js"></script>
+    <style>
+        :root {
+            --ios-blue: #007AFF;
+            --ios-red: #FF3B30;
+            --ios-green: #34C759;
+            --ios-orange: #FF9500;
+            --ios-purple: #AF52DE;
+            --ios-bg: #F2F2F7;
+            --ios-card-solid: #FFFFFF;
+            --text-primary: #000;
+            --text-muted: #8E8E93;
+            --border-soft: rgba(0, 0, 0, 0.08);
+        }
+
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+            background: var(--ios-bg);
+            color: var(--text-primary);
+            padding: 20px;
+            max-width: 720px;
+            margin: 0 auto;
+        }
+
+        .page-header {
+            padding: 10px 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .page-title { font-size: 28px; font-weight: 700; margin: 0; }
+
+        .back-link {
+            font-size: 14px;
+            color: var(--ios-blue);
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .back-link:hover { text-decoration: underline; }
+
+        .user-pill {
+            display: inline-flex;
+            gap: 8px;
+            align-items: center;
+            font-size: 13px;
+            color: var(--text-muted);
+            background: rgba(0,0,0,0.04);
+            padding: 6px 12px;
+            border-radius: 20px;
+        }
+        .user-pill a {
+            color: var(--ios-red);
+            font-weight: 500;
+            text-decoration: none;
+            margin-left: 6px;
+        }
+
+        .card {
+            background: var(--ios-card-solid);
+            border-radius: 18px;
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+        }
+
+        .section-label {
+            font-size: 13px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            font-weight: 600;
+            margin: 14px 0 8px;
+            letter-spacing: 0.5px;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            border-radius: 12px;
+            border: 1px solid var(--border-soft);
+            background: var(--ios-bg);
+            font-size: 15px;
+            font-family: inherit;
+            margin-bottom: 10px;
+        }
+        textarea { resize: vertical; min-height: 80px; }
+        input:focus, select:focus, textarea:focus { outline: 2px solid var(--ios-blue); outline-offset: -1px; }
+
+        label {
+            font-size: 13px;
+            color: var(--text-muted);
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .btn {
+            padding: 12px 16px;
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        .btn:active { transform: scale(0.97); }
+        .btn-primary { background: var(--ios-blue); color: white; }
+        .btn-ghost { background: rgba(0,122,255,0.1); color: var(--ios-blue); }
+        .btn-danger { background: rgba(255,59,48,0.1); color: #C93400; }
+        .btn-block { width: 100%; }
+
+        /* Items */
+        .req-item {
+            padding: 14px 0;
+            border-bottom: 1px solid var(--border-soft);
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 12px;
+        }
+        .req-item:last-child { border-bottom: none; padding-bottom: 0; }
+        .req-info { flex: 1; min-width: 0; }
+        .req-title { font-weight: 600; font-size: 16px; margin-bottom: 3px; }
+        .req-desc { font-size: 13px; color: var(--text-muted); margin-bottom: 8px; }
+        .req-meta { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; font-size: 11px; }
+        .req-action { flex-shrink: 0; }
+
+        .status-badge {
+            font-weight: 600;
+            padding: 3px 10px;
+            border-radius: 8px;
+        }
+        .completion-note {
+            margin-top: 8px;
+            padding: 8px 10px;
+            background: rgba(52,199,89,0.1);
+            border-radius: 8px;
+            color: #1F7A37;
+            font-size: 13px;
+        }
+
+        /* Modals */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .modal-overlay.open { display: flex; }
+        .modal {
+            background: var(--ios-card-solid);
+            border-radius: 18px;
+            padding: 20px;
+            width: 100%;
+            max-width: 480px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            font-weight: 600;
+        }
+        .modal-header span[role="button"] {
+            color: var(--ios-blue);
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .stars {
+            display: flex;
+            justify-content: center;
+            gap: 6px;
+            font-size: 32px;
+            margin: 10px 0 16px;
+        }
+        .stars span { cursor: pointer; color: rgba(0,0,0,0.25); user-select: none; }
+        .stars span.on { color: #FFB800; }
+
+        .empty {
+            text-align: center;
+            padding: 30px 10px;
+            color: var(--text-muted);
+        }
+
+        /* Toast */
+        #toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.85);
+            color: white;
+            padding: 10px 18px;
+            border-radius: 12px;
+            font-size: 14px;
+            opacity: 0;
+            transition: opacity 0.2s;
+            pointer-events: none;
+            z-index: 200;
+        }
+        #toast.show { opacity: 1; }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --ios-bg: #000;
+                --ios-card-solid: #1C1C1E;
+                --text-primary: #FFF;
+                --text-muted: #8E8E93;
+                --border-soft: rgba(255,255,255,0.1);
+            }
+            input, select, textarea { background: #2C2C2E; color: white; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">🔧 Заявки на ремонт</h1>
+        <a href="/" class="back-link">← к основному приложению</a>
+    </div>
+    <div id="user-info"></div>
+</div>
+
+<!-- ===== AUTH BLOCK (показывается если нет JWT) ===== -->
+<div id="auth-block" class="card" style="display:none;">
+    <p style="margin-top:0; color:var(--text-muted); font-size:14px;">
+        Войди, чтобы увидеть свои заявки и создавать новые.
+    </p>
+    <input type="email" id="login-email" placeholder="Email" autocomplete="email">
+    <input type="password" id="login-password" placeholder="Пароль" autocomplete="current-password">
+    <button class="btn btn-primary btn-block" onclick="doLogin()">Войти</button>
+    <p style="font-size:12px; color:var(--text-muted); margin-top:10px; margin-bottom:0;">
+        Тестовые аккаунты после сидера: <br>
+        <code>resident@fizz.test</code> (создай через /api/Auth/register), <br>
+        <code>maria.admin@fizz.test / fizz123!</code> (только просмотр — админ не автор заявок).
+    </p>
+</div>
+
+<!-- ===== MAIN CONTENT (показывается если есть JWT) ===== -->
+<div id="main-content" style="display:none;">
+
+    <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <span style="font-size:13px; color:var(--text-muted);" id="apt-context-label">Загрузка…</span>
+            <button class="btn btn-primary" onclick="openCreateModal()">+ Новая</button>
+        </div>
+        <div id="req-list">Загрузка…</div>
+    </div>
+
+    <div style="text-align:center; font-size:12px; color:var(--text-muted); margin-top:20px;">
+        Live-обновления через SignalR активны.
+        <span id="signalr-status">🔄</span>
+    </div>
+</div>
+
+<!-- ===== Модал: создание заявки ===== -->
+<div class="modal-overlay" id="create-modal">
+    <div class="modal">
+        <div class="modal-header">
+            <span role="button" onclick="closeModal('create-modal')">Отмена</span>
+            <span>Новая заявка</span>
+            <span role="button" onclick="submitCreate()">Отправить</span>
+        </div>
+
+        <label>Категория</label>
+        <select id="m-category">
+            <option value="Plumbing">🔧 Сантехника</option>
+            <option value="Electric">⚡️ Электрика</option>
+            <option value="Furniture">🪑 Мебель</option>
+            <option value="Appliance">🧺 Бытовая техника</option>
+            <option value="Hvac">❄️ Отопление / кондиционер</option>
+            <option value="WindowsAndDoors">🚪 Окна и двери</option>
+            <option value="Cleaning">🧹 Уборка</option>
+            <option value="Internet">🌐 Интернет</option>
+            <option value="Other">📦 Другое</option>
+        </select>
+
+        <label>Срочность</label>
+        <select id="m-priority">
+            <option value="Low">🟢 Низкая</option>
+            <option value="Normal" selected>🟡 Обычная</option>
+            <option value="High">🟠 Высокая</option>
+            <option value="Urgent">🔴 Срочно</option>
+        </select>
+
+        <label>Где проблема?</label>
+        <select id="m-location"></select>
+
+        <label>Заголовок</label>
+        <input type="text" id="m-title" placeholder="Например, «Течёт кран»" maxlength="200">
+
+        <label>Описание</label>
+        <textarea id="m-description" placeholder="Опиши проблему подробно" rows="4" maxlength="2000"></textarea>
+
+        <p style="font-size:12px; color:var(--text-muted); margin-top:12px; margin-bottom:0;">
+            📎 Загрузка фото будет в следующей фазе.
+        </p>
+    </div>
+</div>
+
+<!-- ===== Модал: оценка ===== -->
+<div class="modal-overlay" id="rate-modal">
+    <div class="modal">
+        <div class="modal-header">
+            <span role="button" onclick="closeModal('rate-modal')">Отмена</span>
+            <span>Оцените работу</span>
+            <span role="button" onclick="submitRate()">Отправить</span>
+        </div>
+
+        <input type="hidden" id="rate-id">
+        <p style="text-align:center; color:var(--text-muted); margin:6px 0 10px;">Как подрядчик справился?</p>
+
+        <div class="stars" id="stars">
+            <span data-v="1" onclick="setStars(1)">☆</span>
+            <span data-v="2" onclick="setStars(2)">☆</span>
+            <span data-v="3" onclick="setStars(3)">☆</span>
+            <span data-v="4" onclick="setStars(4)">☆</span>
+            <span data-v="5" onclick="setStars(5)">☆</span>
+        </div>
+
+        <label>Комментарий (необязательно)</label>
+        <textarea id="rate-feedback" rows="3" placeholder="Что понравилось или не понравилось"></textarea>
+    </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+    /* =========================================================================
+     *  CO-LIVING · Standalone Maintenance Page
+     *  Использует те же endpoint'ы и SignalR hub, что и index.html.
+     *  JWT хранится в localStorage под тем же ключом — можно залогиниться здесь,
+     *  открыть основное приложение, уже авторизован.
+     * ========================================================================= */
+
+    const API_URL = '/api';
+
+    /* ===== Labels & icons ===== */
+    const STATUS_LABELS = {
+        Reported:     { text: 'Отправлено',      color: '#007AFF' },
+        Acknowledged: { text: 'Принято',          color: '#FF9500' },
+        Assigned:     { text: 'Назначен мастер',  color: '#FF9500' },
+        InProgress:   { text: 'В работе',         color: '#AF52DE' },
+        Completed:    { text: 'Готово',           color: '#34C759' },
+        Cancelled:    { text: 'Отменено',         color: '#8E8E93' },
+        Rejected:     { text: 'Отклонено',        color: '#FF3B30' }
+    };
+
+    const CATEGORY_ICONS = {
+        Plumbing: '🔧', Electric: '⚡️', Furniture: '🪑', Appliance: '🧺',
+        Hvac: '❄️', WindowsAndDoors: '🚪', Cleaning: '🧹', Internet: '🌐', Other: '📦'
+    };
+
+    const PRIORITY_ICONS = {
+        Low: '🟢', Normal: '🟡', High: '🟠', Urgent: '🔴'
+    };
+
+    /* ===== State ===== */
+    let apartmentContext = null;
+    let hubConnection = null;
+    let currentStars = 0;
+
+    /* ===== Utilities ===== */
+    function getToken()        { return localStorage.getItem('jwt'); }
+    function saveToken(token)  { localStorage.setItem('jwt', token); }
+    function clearToken()      { localStorage.removeItem('jwt'); }
+
+    function escapeHtml(s) {
+        if (s == null) return '';
+        return String(s).replace(/[&<>"']/g, c => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        }[c]));
+    }
+
+    function toast(msg) {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 2200);
+    }
+
+    function parseJwt(token) {
+        try { return JSON.parse(atob(token.split('.')[1])); }
+        catch (e) { return null; }
+    }
+
+    function getCurrentUserId() {
+        const t = getToken(); if (!t) return null;
+        const d = parseJwt(t); if (!d) return null;
+        return d['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'];
+    }
+
+    function getCurrentUserName() {
+        const t = getToken(); if (!t) return null;
+        const d = parseJwt(t); if (!d) return null;
+        return d['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'];
+    }
+
+    async function apiFetch(endpoint, method = 'GET', body = null) {
+        const headers = { 'Content-Type': 'application/json' };
+        const token = getToken();
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+
+        const options = { method, headers };
+        if (body) options.body = JSON.stringify(body);
+
+        try {
+            const res = await fetch(`${API_URL}${endpoint}`, options);
+            if (res.status === 401) {
+                toast('Сессия истекла');
+                clearToken();
+                setTimeout(() => render(), 500);
+                return null;
+            }
+            const data = await res.json().catch(() => null);
+            if (!res.ok) {
+                toast(data?.error || 'Ошибка');
+                return null;
+            }
+            return data ?? true;
+        } catch (e) {
+            console.error(e);
+            toast('Сеть недоступна');
+            return null;
+        }
+    }
+
+    function openModal(id)  { document.getElementById(id).classList.add('open'); }
+    function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+    /* ===== Auth ===== */
+
+    async function doLogin() {
+        const email = document.getElementById('login-email').value.trim();
+        const password = document.getElementById('login-password').value;
+        if (!email || !password) return toast('Заполни оба поля');
+
+        const res = await apiFetch('/Auth/login', 'POST', { email, password });
+        if (res?.token) {
+            saveToken(res.token);
+            await render();
+        }
+    }
+
+    function doLogout() {
+        if (hubConnection) { hubConnection.stop(); hubConnection = null; }
+        clearToken();
+        apartmentContext = null;
+        render();
+    }
+
+    /* ===== SignalR ===== */
+
+    async function setupSignalR() {
+        if (hubConnection) return;
+
+        hubConnection = new signalR.HubConnectionBuilder()
+            .withUrl('/hubs/coliving')
+            .withAutomaticReconnect()
+            .build();
+
+        hubConnection.on('MaintenanceStatusChanged', () => {
+            loadRequests();
+        });
+
+        hubConnection.onclose(() => {
+            document.getElementById('signalr-status').textContent = '⚠️ разорвано';
+        });
+
+        hubConnection.onreconnected(() => {
+            document.getElementById('signalr-status').textContent = '✓';
+        });
+
+        try {
+            await hubConnection.start();
+            const uid = getCurrentUserId();
+            if (uid) await hubConnection.invoke('JoinUserGroup', uid);
+            document.getElementById('signalr-status').textContent = '✓';
+        } catch (e) {
+            console.error('SignalR failed:', e);
+            document.getElementById('signalr-status').textContent = '⚠️';
+        }
+    }
+
+    /* ===== Apartment context (для формы) ===== */
+
+    async function loadApartmentContext() {
+        const ctx = await apiFetch('/Apartments/my-context');
+        apartmentContext = ctx; // может быть null если жилец ни в одной квартире
+
+        const label = document.getElementById('apt-context-label');
+        if (!ctx) {
+            label.textContent = '⚠️ Ты не состоишь ни в одной квартире';
+            label.style.color = 'var(--ios-red)';
+        } else if (ctx.buildingName) {
+            label.textContent = `📍 ${ctx.buildingName} · ${ctx.unitNumber || ctx.apartmentName}`;
+        } else {
+            label.textContent = `📍 ${ctx.apartmentName} (roommate-режим)`;
+        }
+    }
+
+    /* ===== Список заявок ===== */
+
+    async function loadRequests() {
+        const container = document.getElementById('req-list');
+        const items = await apiFetch('/Maintenance/my');
+
+        if (!items) {
+            container.innerHTML = '<div class="empty">Не удалось загрузить</div>';
+            return;
+        }
+        if (items.length === 0) {
+            container.innerHTML = `
+      <div class="empty">
+        Пока ничего не сломалось 🎉<br>
+        <span style="font-size:12px;">Нажми «+ Новая» чтобы отправить первую заявку.</span>
+      </div>`;
+            return;
+        }
+
+        container.innerHTML = items.map(renderItem).join('');
+    }
+
+    function renderItem(it) {
+        const status = STATUS_LABELS[it.status] || { text: it.status, color: '#8E8E93' };
+        const catIcon = CATEGORY_ICONS[it.category] || '📦';
+        const prio = PRIORITY_ICONS[it.priority] || '';
+
+        const created = new Date(it.createdAt).toLocaleString([], {
+            day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
+        });
+
+        const canCancel = ['Reported', 'Acknowledged', 'Assigned'].includes(it.status);
+        const canRate = it.status === 'Completed' && !it.residentRating;
+
+        let actionHtml = '';
+        if (canCancel) {
+            actionHtml = `<button class="btn btn-danger" style="font-size:12px; padding:6px 12px;" onclick="cancelRequest('${it.id}')">Отменить</button>`;
+        } else if (canRate) {
+            actionHtml = `<button class="btn btn-primary" style="font-size:12px; padding:6px 12px;" onclick="openRateModal('${it.id}')">⭐ Оценить</button>`;
+        } else if (it.residentRating) {
+            actionHtml = `<span style="font-size:13px; color:var(--text-muted);">${'⭐'.repeat(it.residentRating)}</span>`;
+        }
+
+        const staffHtml = it.assignedStaffName
+            ? `<span style="color:var(--text-muted);">👷 ${escapeHtml(it.assignedStaffName)}</span>`
+            : '';
+
+        const completion = it.completionNotes
+            ? `<div class="completion-note">💬 ${escapeHtml(it.completionNotes)}</div>`
+            : '';
+
+        return `
+    <div class="req-item">
+      <div class="req-info">
+        <div class="req-title">${prio} ${catIcon} ${escapeHtml(it.title)}</div>
+        <div class="req-desc">${escapeHtml(it.description)}</div>
+        <div class="req-meta">
+          <span class="status-badge" style="color:${status.color}; background:${status.color}15;">${status.text}</span>
+          <span style="color:var(--text-muted);">${created}</span>
+          ${staffHtml}
+        </div>
+        ${completion}
+      </div>
+      <div class="req-action">${actionHtml}</div>
+    </div>`;
+    }
+
+    /* ===== Создание заявки ===== */
+
+    function openCreateModal() {
+        if (!apartmentContext) {
+            toast('Сначала вступи в квартиру');
+            return;
+        }
+
+        const ctx = apartmentContext;
+        const locationSelect = document.getElementById('m-location');
+        const options = [];
+
+        if (ctx.buildingId) {
+            if (ctx.rooms && ctx.rooms.length > 1) {
+                ctx.rooms.forEach(r => {
+                    options.push(`<option value="room:${r.id}">🚪 Моя комната (${escapeHtml(r.number)})</option>`);
+                });
+                options.push(`<option value="apartment:${ctx.apartmentId}">🏠 Общая зона квартиры ${escapeHtml(ctx.unitNumber || '')}</option>`);
+            } else if (ctx.rooms && ctx.rooms.length === 1) {
+                options.push(`<option value="room:${ctx.rooms[0].id}">🏠 Моя студия (${escapeHtml(ctx.unitNumber || ctx.rooms[0].number)})</option>`);
+            } else {
+                options.push(`<option value="apartment:${ctx.apartmentId}">🏠 Моя квартира ${escapeHtml(ctx.unitNumber || '')}</option>`);
+            }
+            options.push(`<option value="building:${ctx.buildingId}">🏢 Общая зона здания (${escapeHtml(ctx.buildingName || '')})</option>`);
+        } else {
+            options.push(`<option value="apartment:${ctx.apartmentId}">🏠 Моя квартира</option>`);
+        }
+
+        locationSelect.innerHTML = options.join('');
+
+        // Сброс формы
+        document.getElementById('m-category').value = 'Plumbing';
+        document.getElementById('m-priority').value = 'Normal';
+        document.getElementById('m-title').value = '';
+        document.getElementById('m-description').value = '';
+
+        openModal('create-modal');
+    }
+
+    async function submitCreate() {
+        const title = document.getElementById('m-title').value.trim();
+        const description = document.getElementById('m-description').value.trim();
+
+        if (!title) return toast('Укажи заголовок');
+        if (!description) return toast('Опиши проблему');
+
+        const [kind, id] = document.getElementById('m-location').value.split(':');
+
+        const body = {
+            reportedByUserId: '',
+            category: document.getElementById('m-category').value,
+            priority: document.getElementById('m-priority').value,
+            title, description,
+            roomId:      kind === 'room' ? id : null,
+            apartmentId: kind === 'apartment' ? id : null,
+            buildingId:  kind === 'building' ? id : null,
+            photoUrl: null
+        };
+
+        const res = await apiFetch('/Maintenance', 'POST', body);
+        if (res?.maintenanceRequestId) {
+            toast('Заявка отправлена');
+            closeModal('create-modal');
+            await loadRequests();
+        }
+    }
+
+    /* ===== Cancel & Rate ===== */
+
+    async function cancelRequest(id) {
+        if (!confirm('Отменить заявку?')) return;
+        const res = await apiFetch(`/Maintenance/${id}/cancel`, 'POST', { reason: null });
+        if (res !== null) {
+            toast('Заявка отменена');
+            await loadRequests();
+        }
+    }
+
+    function openRateModal(id) {
+        document.getElementById('rate-id').value = id;
+        document.getElementById('rate-feedback').value = '';
+        setStars(0);
+        openModal('rate-modal');
+    }
+
+    function setStars(v) {
+        currentStars = v;
+        document.querySelectorAll('#stars span').forEach(s => {
+            const val = parseInt(s.dataset.v, 10);
+            s.textContent = val <= v ? '★' : '☆';
+            s.classList.toggle('on', val <= v);
+        });
+    }
+
+    async function submitRate() {
+        if (currentStars < 1) return toast('Поставь оценку');
+
+        const id = document.getElementById('rate-id').value;
+        const feedback = document.getElementById('rate-feedback').value.trim() || null;
+
+        const res = await apiFetch(`/Maintenance/${id}/rate`, 'POST', {
+            rating: currentStars, feedback
+        });
+        if (res !== null) {
+            toast('Спасибо за оценку!');
+            closeModal('rate-modal');
+            await loadRequests();
+        }
+    }
+
+    /* ===== Render switch ===== */
+
+    async function render() {
+        const authed = !!getToken();
+
+        document.getElementById('auth-block').style.display = authed ? 'none' : 'block';
+        document.getElementById('main-content').style.display = authed ? 'block' : 'none';
+
+        if (authed) {
+            const name = getCurrentUserName() || 'Жилец';
+            document.getElementById('user-info').innerHTML = `
+      <span class="user-pill">
+        ${escapeHtml(name)}
+        <a href="#" onclick="doLogout(); return false;">выйти</a>
+      </span>`;
+            await Promise.all([loadApartmentContext(), loadRequests()]);
+            await setupSignalR();
+        } else {
+            document.getElementById('user-info').innerHTML = '';
+        }
+    }
+
+    render();
+</script>
+</body>
+</html>

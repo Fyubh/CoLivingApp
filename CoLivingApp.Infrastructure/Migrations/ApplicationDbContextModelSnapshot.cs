@@ -455,6 +455,119 @@ namespace CoLivingApp.Infrastructure.Migrations
                     b.ToTable("InventoryItems");
                 });
 
+            modelBuilder.Entity("CoLivingApp.Domain.Entities.MaintenanceRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("AcknowledgedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ApartmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("AssignedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("AssignedStaffAssignmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BuildingId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CompletionNotes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("CompletionPhotoUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedById")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("PhotoUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Priority")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("ReportedByUserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ResidentFeedback")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<int?>("ResidentRating")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("RoomId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("StartedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedById")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApartmentId");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("ReportedByUserId");
+
+                    b.HasIndex("RoomId");
+
+                    b.HasIndex("AssignedStaffAssignmentId", "Status");
+
+                    b.HasIndex("BuildingId", "Status");
+
+                    b.ToTable("MaintenanceRequests", (string)null);
+                });
+
             modelBuilder.Entity("CoLivingApp.Domain.Entities.Operator", b =>
                 {
                     b.Property<Guid>("Id")
@@ -723,6 +836,74 @@ namespace CoLivingApp.Infrastructure.Migrations
                     b.ToTable("Settlements");
                 });
 
+            modelBuilder.Entity("CoLivingApp.Domain.Entities.StaffAssignment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal?>("AverageRating")
+                        .HasColumnType("decimal(3,2)");
+
+                    b.Property<Guid>("BuildingId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("CompletedTasksCount")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedById")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsOnShift")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<DateTime?>("ShiftStartedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Specialization")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedById")
+                        .HasColumnType("text");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("BuildingId", "Role", "IsActive");
+
+                    b.HasIndex("UserId", "BuildingId", "Role")
+                        .IsUnique()
+                        .HasFilter("\"IsActive\" = TRUE AND \"IsDeleted\" = FALSE");
+
+                    b.ToTable("StaffAssignments", (string)null);
+                });
+
             modelBuilder.Entity("CoLivingApp.Domain.Entities.User", b =>
                 {
                     b.Property<string>("Id")
@@ -937,6 +1118,46 @@ namespace CoLivingApp.Infrastructure.Migrations
                     b.Navigation("UpdatedBy");
                 });
 
+            modelBuilder.Entity("CoLivingApp.Domain.Entities.MaintenanceRequest", b =>
+                {
+                    b.HasOne("CoLivingApp.Domain.Entities.Apartment", "Apartment")
+                        .WithMany()
+                        .HasForeignKey("ApartmentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("CoLivingApp.Domain.Entities.StaffAssignment", "AssignedStaffAssignment")
+                        .WithMany()
+                        .HasForeignKey("AssignedStaffAssignmentId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("CoLivingApp.Domain.Entities.Building", "Building")
+                        .WithMany()
+                        .HasForeignKey("BuildingId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CoLivingApp.Domain.Entities.User", "ReportedByUser")
+                        .WithMany()
+                        .HasForeignKey("ReportedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CoLivingApp.Domain.Entities.Room", "Room")
+                        .WithMany()
+                        .HasForeignKey("RoomId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Apartment");
+
+                    b.Navigation("AssignedStaffAssignment");
+
+                    b.Navigation("Building");
+
+                    b.Navigation("ReportedByUser");
+
+                    b.Navigation("Room");
+                });
+
             modelBuilder.Entity("CoLivingApp.Domain.Entities.RecurringChore", b =>
                 {
                     b.HasOne("CoLivingApp.Domain.Entities.Apartment", "Apartment")
@@ -1009,6 +1230,25 @@ namespace CoLivingApp.Infrastructure.Migrations
                     b.Navigation("Receiver");
 
                     b.Navigation("Sender");
+                });
+
+            modelBuilder.Entity("CoLivingApp.Domain.Entities.StaffAssignment", b =>
+                {
+                    b.HasOne("CoLivingApp.Domain.Entities.Building", "Building")
+                        .WithMany()
+                        .HasForeignKey("BuildingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("CoLivingApp.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Building");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("CoLivingApp.Domain.Entities.Apartment", b =>
