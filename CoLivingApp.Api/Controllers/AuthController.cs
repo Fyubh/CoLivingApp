@@ -14,27 +14,33 @@ public class AuthController : ControllerBase
 
     public AuthController(IMediator mediator) => _mediator = mediator;
 
-    [HttpPost("register")]
-    public async Task<IActionResult> Register([FromBody] RegisterCommand command)
-    {
-        var result = await _mediator.Send(command);
-        return result.IsSuccess ? Ok(new { userId = result.Value }) : BadRequest(new { error = result.Error });
-    }
+    // === ВАЖНО: Эндпоинт /api/Auth/register удалён. ===
+    // В B2B-модели пользователи не регистрируются сами — их создаёт админ
+    // при чек-ине через POST /api/admin/onboarding/tenants (или .../staff)
+    // и выдаёт временный пароль. См. OnboardingController.
+    //
+    // Если в будущем понадобится consumer-mode регистрация (две подруги
+    // в съёмной квартире) — её нужно делать через отдельный invite-flow,
+    // а не возвращать публичный register-endpoint.
 
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginCommand command)
     {
         var result = await _mediator.Send(command);
-        return result.IsSuccess ? Ok(new { token = result.Value }) : Unauthorized(new { error = result.Error });
+        return result.IsSuccess
+            ? Ok(new { token = result.Value })
+            : Unauthorized(new { error = result.Error });
     }
-    
+
     [HttpGet("my-context")]
     public async Task<IActionResult> GetMyContext()
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (string.IsNullOrEmpty(userId)) return Unauthorized();
- 
+
         var result = await _mediator.Send(new GetMyApartmentContextQuery(userId));
-        return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
+        return result.IsSuccess
+            ? Ok(result.Value)
+            : BadRequest(new { error = result.Error });
     }
 }

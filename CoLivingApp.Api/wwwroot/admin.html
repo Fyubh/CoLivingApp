@@ -343,9 +343,31 @@
     }
 
     function myRole() {
-        const t = token(); if (!t) return null;
-        const d = parseJwt(t); if (!d) return null;
-        return d['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'];
+        const t = token();
+        if (!t) return null;
+        const d = parseJwt(t);
+        if (!d) return null;
+
+        // .NET может класть роль под несколькими ключами в зависимости от настроек.
+        // Проверяем все типичные варианты:
+        const candidates = [
+            d['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'],
+            d['role'],
+            d['Role'],
+            d['roles']
+        ];
+
+        for (const c of candidates) {
+            if (c == null) continue;
+            // Иногда роль приходит массивом ["Admin"] или строкой "Admin"
+            if (Array.isArray(c)) return c[0];
+            return c;
+        }
+
+        // Если совсем ничего не нашли — лог в консоль, чтобы было видно структуру токена.
+        console.warn('[admin.html] Role claim not found. JWT payload keys:', Object.keys(d));
+        console.warn('[admin.html] Full JWT payload:', d);
+        return null;
     }
 
     function esc(s) {
@@ -398,11 +420,25 @@
         if (res?.token) {
             saveToken(res.token);
             const role = myRole();
-            if (role !== 'Admin' && role !== 'SuperAdmin') {
-                toast('Этот аккаунт не админ');
+
+            if (role == null) {
+                toast('JWT не содержит роли — открой консоль (F12)');
+                console.error(
+                    '[admin.html] Login OK, но в токене нет claim роли.\n' +
+                    'Проверь LoginCommandHandler — должен быть:\n' +
+                    '  new Claim(ClaimTypes.Role, user.Role.ToString())'
+                );
                 clearToken();
                 return;
             }
+
+            if (role !== 'Admin' && role !== 'SuperAdmin') {
+                toast(`Роль "${role}" — не админ`);
+                console.warn(`[admin.html] Login OK, но role="${role}". Нужно Admin или SuperAdmin.`);
+                clearToken();
+                return;
+            }
+
             await render();
         }
     }

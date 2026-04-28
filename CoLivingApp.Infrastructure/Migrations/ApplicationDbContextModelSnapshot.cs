@@ -80,6 +80,9 @@ namespace CoLivingApp.Infrastructure.Migrations
                     b.Property<DateTime?>("LeftAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid?>("RoomId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("UserId")
                         .IsRequired()
                         .HasColumnType("text");
@@ -90,7 +93,9 @@ namespace CoLivingApp.Infrastructure.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("ApartmentMembers");
+                    b.HasIndex("RoomId", "IsActive");
+
+                    b.ToTable("ApartmentMembers", (string)null);
                 });
 
             modelBuilder.Entity("CoLivingApp.Domain.Entities.Building", b =>
@@ -924,6 +929,11 @@ namespace CoLivingApp.Infrastructure.Migrations
                         .HasColumnType("integer")
                         .HasDefaultValue(100);
 
+                    b.Property<bool>("MustChangePassword")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -938,6 +948,9 @@ namespace CoLivingApp.Infrastructure.Migrations
                         .HasColumnType("text");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Email")
+                        .IsUnique();
 
                     b.ToTable("Users");
                 });
@@ -967,6 +980,11 @@ namespace CoLivingApp.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("CoLivingApp.Domain.Entities.Room", "Room")
+                        .WithMany()
+                        .HasForeignKey("RoomId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("CoLivingApp.Domain.Entities.User", "User")
                         .WithMany("ApartmentMembers")
                         .HasForeignKey("UserId")
@@ -974,6 +992,8 @@ namespace CoLivingApp.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Apartment");
+
+                    b.Navigation("Room");
 
                     b.Navigation("User");
                 });

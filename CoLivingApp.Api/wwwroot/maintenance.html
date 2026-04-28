@@ -635,12 +635,13 @@
             reportedByUserId: '',
             category: document.getElementById('m-category').value,
             priority: document.getElementById('m-priority').value,
-            title, description,
-            roomId:      kind === 'room' ? id : null,
-            apartmentId: kind === 'apartment' ? id : null,
-            buildingId:  kind === 'building' ? id : null,
-            photoUrl: null
+            title, description
         };
+// Добавляем только то поле, которое реально выбрано — null НЕ шлём,
+// потому что System.Text.Json в .NET плохо парсит null в Guid? внутри record.
+        if (kind === 'room')      body.roomId = id;
+        if (kind === 'apartment') body.apartmentId = id;
+        if (kind === 'building')  body.buildingId = id;
 
         const res = await apiFetch('/Maintenance', 'POST', body);
         if (res?.maintenanceRequestId) {
