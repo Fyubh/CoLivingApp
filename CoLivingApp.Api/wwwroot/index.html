@@ -377,18 +377,28 @@
     <div class="container">
 
         <div class="card" id="auth-block">
-            <h3 style="margin-top:0;">Вход / Регистрация</h3>
-            <div class="auth-toggle">
-                <input type="radio" id="reg-solo" name="roomType" value="solo" checked>
-                <label for="reg-solo">Один</label>
-                <input type="radio" id="reg-shared" name="roomType" value="shared">
-                <label for="reg-shared">С соседом</label>
-            </div>
-            <input type="email" id="auth-email" placeholder="Email">
-            <input type="password" id="auth-password" placeholder="Пароль">
-            <input type="text" id="auth-name" placeholder="Имя (для регистрации)">
-            <button class="btn btn-solid" onclick="login()">Войти</button>
-            <button class="btn btn-primary" onclick="register()">Создать аккаунт</button>
+            <h3 style="margin-top:0;">Вход</h3>
+            <p style="font-size:13px; color:var(--text-muted); margin-bottom:14px;">
+                Аккаунт создаёт администратор здания при заселении.
+                Если у вас есть email и временный пароль — войдите ниже.
+            </p>
+            <input type="email" id="auth-email" placeholder="Email" autocomplete="email">
+            <input type="password" id="auth-password" placeholder="Пароль" autocomplete="current-password">
+            <button class="btn btn-solid" style="width:100%;" onclick="login()">Войти</button>
+        </div>
+
+        <div class="card" id="change-pass-block" style="display:none;">
+            <h3 style="margin-top:0;">🔐 Смените временный пароль</h3>
+            <p style="font-size:13px; color:var(--text-muted); margin-bottom:14px;">
+                Прежде чем продолжить, задайте постоянный пароль.
+            </p>
+            <input type="password" id="cp-old-first" placeholder="Текущий (временный) пароль">
+            <input type="password" id="cp-new-first" placeholder="Новый пароль (минимум 8 символов)">
+            <input type="password" id="cp-confirm-first" placeholder="Подтвердите новый пароль">
+            <button class="btn btn-solid" style="width:100%; margin-top:10px;"
+                    onclick="executeFirstLoginPasswordChange()">Сменить пароль</button>
+            <button class="btn-action" style="width:100%; margin-top:8px; color:var(--ios-red); background:transparent;"
+                    onclick="logout()">Отмена (выход)</button>
         </div>
 
         <div id="apt-block" style="display:none;">
@@ -764,7 +774,18 @@
         setupUIByMode();
 
         if (getToken()) {
+            // Жилец только что зашёл с временным паролем. Показываем
+            // только форму смены — apt-block остаётся скрытым, пока пароль
+            // не сменён.
+            if (hasTempPassword()) {
+                document.getElementById('auth-block').style.display = 'none';
+                document.getElementById('change-pass-block').style.display = 'block';
+                document.getElementById('apt-block').style.display = 'none';
+                return;
+            }
+
             document.getElementById('auth-block').style.display = 'none';
+            document.getElementById('change-pass-block').style.display = 'none';
             document.getElementById('apt-block').style.display = 'block';
 
             // Получаем имя из токена, если есть
@@ -807,6 +828,7 @@
             }
         } else {
             document.getElementById('auth-block').style.display = 'block';
+            document.getElementById('change-pass-block').style.display = 'none';
             document.getElementById('apt-block').style.display = 'none';
         }
     }
@@ -1304,7 +1326,12 @@
         if (newPass !== confirmPass) return alert("Пароли не совпадают!");
         if (newPass.length < 6) return alert("Минимум 6 символов");
 
-        const res = await apiFetch('/Users/change-password', 'POST', { oldPassword: oldPass, newPassword: newPass, userId: "ignored" });
+        const res = await apiFetch('/Users/change-password', 'POST', { oldPassword: oldPass, newPassword: newPass });
+        if (res?.token) {
+            // Бэкенд возвращает обновлённый JWT после смены пароля. Сохраняем,
+            // чтобы текущая сессия не отвалилась и не нужно было логиниться заново.
+            localStorage.setItem('jwt', res.token);
+        }
         if (res !== null) {
             alert("Пароль изменен!"); closeModal('change-password-modal');
             ['cp-old', 'cp-new', 'cp-confirm'].forEach(id => document.getElementById(id).value = '');
@@ -1321,27 +1348,56 @@
         }
     }
 
-    async function register() {
-        const isShared = document.getElementById('reg-shared').checked;
-        localStorage.setItem('coliving_mode', isShared ? 'shared' : 'solo');
-
-        const res = await apiFetch('/Auth/register', 'POST', {
-            email: document.getElementById('auth-email').value,
-            password: document.getElementById('auth-password').value,
-            name: document.getElementById('auth-name').value
-        });
-        if (res?.userId) { await login(); }
-    }
+    // register() удалён — пользователи создаются админом через admin.html.
 
     async function login() {
-        const isShared = document.getElementById('reg-shared').checked;
-        localStorage.setItem('coliving_mode', isShared ? 'shared' : 'solo');
-
         const res = await apiFetch('/Auth/login', 'POST', {
             email: document.getElementById('auth-email').value,
             password: document.getElementById('auth-password').value
         });
-        if (res?.token) { localStorage.setItem('jwt', res.token); checkAuthState(); switchTab('home', document.querySelector('.tab-item')); }
+        if (res?.token) {
+            localStorage.setItem('jwt', res.token);
+            checkAuthState(); // если mustChangePassword — покажет change-pass-block
+            if (!res.mustChangePassword) {
+                switchTab('home', document.querySelector('.tab-item'));
+            }
+        }
+    }
+
+    /**
+     * Проверяет наличие в текущем JWT claim'а mustChangePassword=true.
+     * Этот claim добавляется бэкендом в LoginCommandHandler, если у юзера
+     * флаг User.MustChangePassword=true (т.е. он только что получил
+     * временный пароль от админа и ещё не сменил его).
+     */
+    function hasTempPassword() {
+        const t = getToken(); if (!t) return false;
+        const d = parseJwt(t); if (!d) return false;
+        const v = d['mustChangePassword'];
+        return v === 'true' || v === true;
+    }
+
+    async function executeFirstLoginPasswordChange() {
+        const oldP = document.getElementById('cp-old-first').value;
+        const newP = document.getElementById('cp-new-first').value;
+        const conf = document.getElementById('cp-confirm-first').value;
+        if (!oldP || !newP) return alert('Заполните поля');
+        if (newP.length < 8)  return alert('Минимум 8 символов');
+        if (newP !== conf)    return alert('Пароли не совпадают');
+
+        const res = await apiFetch('/Users/change-password', 'POST', {
+            oldPassword: oldP, newPassword: newP
+        });
+        if (res?.token) {
+            // Бэкенд вернул НОВЫЙ JWT (без mustChangePassword) — подменяем его в localStorage,
+            // чтобы фронт сразу увидел юзера как полноценного, без повторного логина.
+            localStorage.setItem('jwt', res.token);
+            ['cp-old-first','cp-new-first','cp-confirm-first']
+                .forEach(id => document.getElementById(id).value = '');
+            alert('Пароль изменён');
+            checkAuthState();
+            switchTab('home', document.querySelector('.tab-item'));
+        }
     }
 
     function logout() {

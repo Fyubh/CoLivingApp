@@ -14,21 +14,23 @@ public class AuthController : ControllerBase
 
     public AuthController(IMediator mediator) => _mediator = mediator;
 
-    // === ВАЖНО: Эндпоинт /api/Auth/register удалён. ===
+    // === Эндпоинт /api/Auth/register удалён. ===
     // В B2B-модели пользователи не регистрируются сами — их создаёт админ
     // при чек-ине через POST /api/admin/onboarding/tenants (или .../staff)
     // и выдаёт временный пароль. См. OnboardingController.
-    //
-    // Если в будущем понадобится consumer-mode регистрация (две подруги
-    // в съёмной квартире) — её нужно делать через отдельный invite-flow,
-    // а не возвращать публичный register-endpoint.
 
+    /// <summary>
+    /// POST /api/Auth/login
+    /// Возвращает { token, mustChangePassword }.
+    /// Если mustChangePassword == true — фронт обязан повести юзера на форму
+    /// смены пароля и не давать пользоваться остальным функционалом до смены.
+    /// </summary>
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginCommand command)
     {
         var result = await _mediator.Send(command);
         return result.IsSuccess
-            ? Ok(new { token = result.Value })
+            ? Ok(new { token = result.Value!.Token, mustChangePassword = result.Value.MustChangePassword })
             : Unauthorized(new { error = result.Error });
     }
 

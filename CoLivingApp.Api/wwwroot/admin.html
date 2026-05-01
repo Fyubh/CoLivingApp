@@ -8,183 +8,157 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.0/signalr.min.js"></script>
     <style>
         :root {
-            --bg: #F2F2F7;
-            --card: #FFFFFF;
-            --text: #000;
-            --muted: #8E8E93;
-            --blue: #007AFF;
-            --red: #FF3B30;
-            --green: #34C759;
-            --orange: #FF9500;
-            --purple: #AF52DE;
-            --border: rgba(0,0,0,0.08);
+            --bg: #F2F2F7; --card: #FFFFFF; --text: #000; --muted: #8E8E93;
+            --blue: #007AFF; --red: #FF3B30; --green: #34C759;
+            --orange: #FF9500; --purple: #AF52DE; --border: rgba(0,0,0,0.08);
         }
         @media (prefers-color-scheme: dark) {
             :root { --bg: #000; --card: #1C1C1E; --text: #FFF; --border: rgba(255,255,255,0.1); }
         }
         * { box-sizing: border-box; }
         body {
-            margin: 0;
+            margin: 0 auto; max-width: 1100px; padding: 20px;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            padding: 20px;
-            max-width: 1100px;
-            margin: 0 auto;
+            background: var(--bg); color: var(--text);
         }
-
         .top-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-            gap: 10px;
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 20px; flex-wrap: wrap; gap: 10px;
         }
         .top-bar h1 { margin: 0; font-size: 26px; }
         .top-bar .sub { font-size: 13px; color: var(--muted); margin-top: 2px; }
         .top-bar .user { font-size: 13px; color: var(--muted); }
         .top-bar a.logout { color: var(--red); margin-left: 10px; cursor: pointer; text-decoration: none; }
         .top-bar a.nav { color: var(--blue); text-decoration: none; font-size: 14px; margin-right: 14px; }
-
         .card {
-            background: var(--card);
-            border-radius: 16px;
-            padding: 18px;
-            margin-bottom: 16px;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+            background: var(--card); border-radius: 16px; padding: 20px;
+            margin-bottom: 16px; border: 1px solid var(--border);
         }
 
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-            gap: 10px;
-            margin-bottom: 20px;
+        /* Building selector */
+        .building-bar {
+            display: flex; align-items: center; gap: 12px;
+            background: var(--card); padding: 10px 14px; border-radius: 12px;
+            margin-bottom: 16px; border: 1px solid var(--border);
         }
-        .stat {
-            background: var(--card);
-            border-radius: 12px;
-            padding: 14px;
-            text-align: center;
+        .building-bar select { flex: 1; max-width: 360px; margin: 0; }
+
+        /* Tabs */
+        .tabs { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
+        .tab {
+            padding: 8px 16px; border-radius: 10px; font-size: 14px; font-weight: 500;
+            cursor: pointer; background: transparent; color: var(--muted); border: none;
         }
+        .tab.active { background: var(--blue); color: white; }
+        .tab-pane { display: none; }
+        .tab-pane.active { display: block; }
+
+        /* Stats */
+        .stats { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+        .stat { flex: 1; min-width: 120px; background: var(--card); border-radius: 12px;
+            padding: 14px; border: 1px solid var(--border); }
         .stat .num { font-size: 28px; font-weight: 700; }
-        .stat .lbl { font-size: 12px; color: var(--muted); margin-top: 4px; }
-        .stat.reported .num { color: var(--blue); }
-        .stat.ack .num, .stat.assigned .num { color: var(--orange); }
-        .stat.progress .num { color: var(--purple); }
+        .stat .lbl { font-size: 12px; color: var(--muted); }
         .stat.urgent .num { color: var(--red); }
+        .stat.reported .num { color: var(--blue); }
 
-        .filters {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-            margin-bottom: 14px;
-        }
+        /* Filters */
+        .filters { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
         .chip {
-            padding: 6px 14px;
-            border-radius: 20px;
-            background: rgba(0,0,0,0.05);
-            cursor: pointer;
-            font-size: 13px;
-            border: 1px solid transparent;
-            user-select: none;
+            padding: 6px 12px; border-radius: 16px; font-size: 12px;
+            background: var(--bg); color: var(--muted); cursor: pointer;
+            border: 1px solid var(--border);
         }
-        .chip.active { background: var(--blue); color: white; }
+        .chip.active { background: var(--blue); color: white; border-color: var(--blue); }
 
-        table { width: 100%; border-collapse: collapse; }
-        th, td {
-            padding: 12px 10px;
-            text-align: left;
-            border-bottom: 1px solid var(--border);
-            font-size: 13px;
-            vertical-align: top;
-        }
-        th { color: var(--muted); font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
-        tr:last-child td { border-bottom: none; }
+        /* Table */
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th { text-align: left; padding: 8px; color: var(--muted); font-weight: 500;
+            border-bottom: 1px solid var(--border); font-size: 11px; text-transform: uppercase; }
+        td { padding: 10px 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
+        .row-title { font-weight: 600; font-size: 13px; margin-bottom: 2px; }
+        .row-desc { font-size: 12px; color: var(--muted); max-width: 280px; }
+        .badge { padding: 3px 8px; border-radius: 8px; font-size: 11px; font-weight: 600; display: inline-block; }
 
-        .badge {
-            display: inline-block;
-            padding: 2px 8px;
-            border-radius: 6px;
-            font-size: 11px;
-            font-weight: 600;
-        }
-
-        .row-title { font-weight: 600; font-size: 14px; margin-bottom: 2px; }
-        .row-desc  { font-size: 12px; color: var(--muted); max-width: 280px; }
-
+        /* Buttons */
         .btn {
-            padding: 6px 12px;
-            border: none;
-            border-radius: 8px;
-            font-size: 12px;
-            font-weight: 600;
-            cursor: pointer;
-            margin: 2px;
+            padding: 8px 14px; border: none; border-radius: 8px; font-size: 13px;
+            font-weight: 600; cursor: pointer; margin: 2px; font-family: inherit;
         }
         .btn-blue { background: var(--blue); color: white; }
         .btn-ghost { background: rgba(0,122,255,0.1); color: var(--blue); }
-        .btn-green { background: rgba(52,199,89,0.1); color: #1F7A37; }
+        .btn-green { background: rgba(52,199,89,0.15); color: #1F7A37; }
         .btn-danger { background: rgba(255,59,48,0.1); color: #C93400; }
+        .btn-secondary { background: var(--bg); color: var(--text); border: 1px solid var(--border); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
         /* Modal */
         .modal-overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.5);
-            z-index: 100;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
+            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+            z-index: 100; align-items: center; justify-content: center; padding: 20px;
         }
         .modal-overlay.open { display: flex; }
         .modal {
-            background: var(--card);
-            border-radius: 16px;
-            padding: 20px;
-            width: 100%;
-            max-width: 460px;
+            background: var(--card); border-radius: 16px; padding: 20px;
+            width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto;
         }
         .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-            font-weight: 600;
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 14px; font-weight: 600;
         }
-        .modal-header span[role="button"] {
-            color: var(--blue); cursor: pointer; font-weight: 500;
-        }
+        .modal-header span[role="button"] { color: var(--blue); cursor: pointer; font-weight: 500; }
+
         input, select, textarea {
-            width: 100%;
-            padding: 10px;
-            border-radius: 8px;
-            border: 1px solid var(--border);
-            background: var(--bg);
-            font-size: 14px;
-            margin-bottom: 10px;
-            color: var(--text);
-            font-family: inherit;
+            width: 100%; padding: 10px; border-radius: 8px;
+            border: 1px solid var(--border); background: var(--bg);
+            font-size: 14px; margin-bottom: 10px; color: var(--text); font-family: inherit;
         }
         input:focus, select:focus { outline: 2px solid var(--blue); outline-offset: -1px; }
+        label.small {
+            display: block; font-size: 12px; color: var(--muted);
+            margin-bottom: 4px; margin-top: 4px;
+        }
+
+        /* Apartment builder — таблица комнат */
+        .room-table { width: 100%; font-size: 13px; }
+        .room-table th { padding: 4px; text-transform: none; }
+        .room-table td { padding: 4px; border: none; }
+        .room-table input { margin: 0; padding: 6px; font-size: 12px; }
+        .room-table .del { color: var(--red); cursor: pointer; padding: 4px 8px; }
+
+        /* Apartment list — карточки квартир с комнатами */
+        .apt-card {
+            border: 1px solid var(--border); border-radius: 10px;
+            padding: 12px; margin-bottom: 10px;
+        }
+        .apt-card .head { display: flex; justify-content: space-between; align-items: center; }
+        .apt-card .name { font-weight: 600; }
+        .apt-card .meta { font-size: 12px; color: var(--muted); }
+        .room-pill {
+            display: inline-block; padding: 4px 10px; margin: 4px 4px 0 0;
+            border-radius: 12px; background: var(--bg); font-size: 12px;
+            border: 1px solid var(--border);
+        }
+        .room-pill.full { background: rgba(255,59,48,0.1); color: #C93400; border-color: rgba(255,59,48,0.2); }
+        .room-pill.empty { background: rgba(52,199,89,0.1); color: #1F7A37; border-color: rgba(52,199,89,0.2); }
+
+        /* Temp password display */
+        .temp-pass {
+            font-family: 'SF Mono', Monaco, monospace; font-size: 18px;
+            padding: 14px; background: var(--bg); border-radius: 10px;
+            text-align: center; letter-spacing: 1px; user-select: all;
+            border: 2px dashed var(--orange);
+        }
 
         #toast {
-            position: fixed; bottom: 20px; left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0,0,0,0.85); color: white;
-            padding: 10px 18px; border-radius: 10px;
-            opacity: 0; transition: opacity 0.2s;
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            background: rgba(0,0,0,0.85); color: white; padding: 10px 18px;
+            border-radius: 10px; opacity: 0; transition: opacity 0.2s;
             pointer-events: none; z-index: 200; font-size: 14px;
         }
         #toast.show { opacity: 1; }
 
-        .empty {
-            text-align: center; padding: 40px 10px; color: var(--muted);
-        }
-
-        /* Soft-hide вместо display:none — сохраняет высоту таблицы при фильтрации */
-        tr.hidden { display: none; }
+        .empty { text-align: center; padding: 40px 10px; color: var(--muted); }
     </style>
 </head>
 <body>
@@ -212,64 +186,102 @@
     </p>
 </div>
 
+<!-- ===== CHANGE PASSWORD (когда у самого админа MustChangePassword) ===== -->
+<div id="change-pass-block" class="card" style="display:none;">
+    <h3 style="margin-top:0;">🔐 Смените временный пароль</h3>
+    <p style="color:var(--muted); font-size:13px;">
+        Прежде чем продолжить, нужно задать постоянный пароль.
+    </p>
+    <input type="password" id="cp-old" placeholder="Текущий (временный) пароль">
+    <input type="password" id="cp-new" placeholder="Новый пароль (минимум 8 символов)">
+    <input type="password" id="cp-confirm" placeholder="Подтвердите новый пароль">
+    <button class="btn btn-blue" style="width:100%; padding: 12px;" onclick="doChangePassword()">Сменить пароль</button>
+</div>
+
 <!-- ===== MAIN ===== -->
 <div id="main-content" style="display:none;">
 
-    <div class="stats" id="stats-row">
-        <div class="stat reported"><div class="num" id="stat-reported">—</div><div class="lbl">Новых</div></div>
-        <div class="stat ack"><div class="num" id="stat-ack">—</div><div class="lbl">Принято</div></div>
-        <div class="stat assigned"><div class="num" id="stat-assigned">—</div><div class="lbl">Назначено</div></div>
-        <div class="stat progress"><div class="num" id="stat-progress">—</div><div class="lbl">В работе</div></div>
-        <div class="stat urgent"><div class="num" id="stat-urgent">—</div><div class="lbl">🔴 Срочных</div></div>
+    <div class="building-bar">
+        <span style="font-size:13px; color:var(--muted);">Здание:</span>
+        <select id="building-select" onchange="onBuildingChanged()"></select>
     </div>
 
-    <div class="card">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
-            <h3 style="margin:0;">Заявки на ремонт</h3>
-            <span style="font-size:12px; color:var(--muted);">
-        Live · SignalR <span id="signalr-status">🔄</span>
-      </span>
+    <div class="tabs">
+        <button class="tab active" data-tab="maintenance" onclick="switchTab('maintenance')">📋 Заявки</button>
+        <button class="tab" data-tab="housing" onclick="switchTab('housing')">🏠 Жильё</button>
+        <button class="tab" data-tab="people" onclick="switchTab('people')">👥 Люди</button>
+    </div>
+
+    <!-- ============ TAB: MAINTENANCE ============ -->
+    <div id="tab-maintenance" class="tab-pane active">
+        <div class="stats">
+            <div class="stat reported"><div class="num" id="stat-reported">—</div><div class="lbl">Новых</div></div>
+            <div class="stat"><div class="num" id="stat-ack">—</div><div class="lbl">Принято</div></div>
+            <div class="stat"><div class="num" id="stat-assigned">—</div><div class="lbl">Назначено</div></div>
+            <div class="stat"><div class="num" id="stat-progress">—</div><div class="lbl">В работе</div></div>
+            <div class="stat urgent"><div class="num" id="stat-urgent">—</div><div class="lbl">🔴 Срочных</div></div>
         </div>
 
-        <div class="filters" id="status-filters">
-            <div class="chip active" data-s="">Все</div>
-            <div class="chip" data-s="Reported">Новые</div>
-            <div class="chip" data-s="Acknowledged">Принятые</div>
-            <div class="chip" data-s="Assigned">Назначенные</div>
-            <div class="chip" data-s="InProgress">В работе</div>
-            <div class="chip" data-s="Completed">Готовые</div>
-        </div>
-
-        <div style="overflow-x:auto;">
-            <table id="req-table">
-                <thead>
-                <tr>
-                    <th>Заявка</th>
-                    <th>Приор.</th>
-                    <th>Статус</th>
-                    <th>Где</th>
-                    <th>От кого</th>
-                    <th>Подрядчик</th>
-                    <th>Создана</th>
-                    <th>Действия</th>
-                </tr>
-                </thead>
-                <tbody id="req-tbody"><tr><td colspan="8" class="empty">Загрузка…</td></tr></tbody>
-            </table>
+        <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
+                <h3 style="margin:0;">Заявки на ремонт</h3>
+                <span style="font-size:12px; color:var(--muted);">Live · SignalR <span id="signalr-status">🔄</span></span>
+            </div>
+            <div class="filters" id="status-filters">
+                <div class="chip active" data-s="">Все</div>
+                <div class="chip" data-s="Reported">Новые</div>
+                <div class="chip" data-s="Acknowledged">Принятые</div>
+                <div class="chip" data-s="Assigned">Назначенные</div>
+                <div class="chip" data-s="InProgress">В работе</div>
+                <div class="chip" data-s="Completed">Готовые</div>
+            </div>
+            <div style="overflow-x:auto;">
+                <table id="req-table">
+                    <thead><tr>
+                        <th>Заявка</th><th>Приор.</th><th>Статус</th><th>Где</th>
+                        <th>От кого</th><th>Подрядчик</th><th>Создана</th><th>Действия</th>
+                    </tr></thead>
+                    <tbody id="req-tbody"><tr><td colspan="8" class="empty">Загрузка…</td></tr></tbody>
+                </table>
+            </div>
         </div>
     </div>
 
-    <!-- Staff card (read-only, с hint про invite в будущем) -->
-    <div class="card">
-        <h3 style="margin-top:0;">Команда здания</h3>
-        <p style="font-size:12px; color:var(--muted); margin-top:-6px;">
-            Создание аккаунтов жильцов и сотрудников — в следующем обновлении (Onboarding module).
-        </p>
-        <div id="staff-list">Загрузка…</div>
+    <!-- ============ TAB: HOUSING ============ -->
+    <div id="tab-housing" class="tab-pane">
+        <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                <h3 style="margin:0;">Квартиры здания</h3>
+                <button class="btn btn-blue" onclick="openCreateApartmentModal()">+ Создать юнит</button>
+            </div>
+            <div id="apartments-list">Загрузка…</div>
+        </div>
+    </div>
+
+    <!-- ============ TAB: PEOPLE ============ -->
+    <div id="tab-people" class="tab-pane">
+        <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:8px;">
+                <h3 style="margin:0;">Сотрудники</h3>
+                <button class="btn btn-blue" onclick="openCreateStaffModal()">+ Добавить сотрудника</button>
+            </div>
+            <div id="staff-list">Загрузка…</div>
+        </div>
+        <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:8px;">
+                <h3 style="margin:0;">Жильцы</h3>
+                <button class="btn btn-blue" onclick="openCreateTenantModal()">+ Заселить жильца</button>
+            </div>
+            <p style="font-size:12px; color:var(--muted);">
+                Список жильцов появится в следующей сессии. Сейчас можно только заселять.
+            </p>
+        </div>
     </div>
 </div>
 
-<!-- ===== Модал: назначить подрядчика ===== -->
+<!-- ===================== МОДАЛКИ ===================== -->
+
+<!-- Назначить подрядчика -->
 <div class="modal-overlay" id="assign-modal">
     <div class="modal">
         <div class="modal-header">
@@ -277,14 +289,124 @@
             <span>Назначить подрядчика</span>
             <span role="button" onclick="submitAssign()">Назначить</span>
         </div>
-
         <input type="hidden" id="assign-maintenance-id">
-        <p style="font-size:13px; color:var(--muted); margin:0 0 10px;">
-            <span id="assign-context"></span>
-        </p>
-
-        <label style="font-size:13px; color:var(--muted); display:block; margin-bottom:4px;">Кому назначить</label>
+        <p style="font-size:13px; color:var(--muted); margin:0 0 10px;"><span id="assign-context"></span></p>
+        <label class="small">Кому назначить</label>
         <select id="assign-staff-select"></select>
+    </div>
+</div>
+
+<!-- Создать квартиру -->
+<div class="modal-overlay" id="apt-modal">
+    <div class="modal">
+        <div class="modal-header">
+            <span role="button" onclick="closeModal('apt-modal')">Отмена</span>
+            <span>Новая квартира</span>
+            <span role="button" onclick="submitCreateApartment()">Создать</span>
+        </div>
+        <label class="small">Этаж</label>
+        <select id="apt-floor"></select>
+        <label class="small">Номер юнита (например, 216)</label>
+        <input type="text" id="apt-unit" placeholder="216">
+        <label class="small">Название (опционально)</label>
+        <input type="text" id="apt-name" placeholder="Studio 216">
+
+        <label class="small">Шаблон (нажми чтобы заполнить таблицу комнат)</label>
+        <div style="display:flex; gap:6px; margin-bottom:10px; flex-wrap:wrap;">
+            <button class="btn btn-secondary" onclick="applyPreset('studio')">Studio</button>
+            <button class="btn btn-secondary" onclick="applyPreset('twin')">Twin</button>
+            <button class="btn btn-secondary" onclick="applyPreset('shared2')">Shared 2BR</button>
+            <button class="btn btn-secondary" onclick="applyPreset('shared3')">Shared 3BR</button>
+            <button class="btn btn-secondary" onclick="applyPreset('shared4')">Shared 4BR</button>
+        </div>
+
+        <label class="small">Комнаты</label>
+        <table class="room-table">
+            <thead>
+            <tr style="font-size:11px; color:var(--muted);">
+                <th>№</th><th>Тип</th><th>Мест</th><th>м²</th><th>Цена</th><th></th>
+            </tr>
+            </thead>
+            <tbody id="apt-rooms-tbody"></tbody>
+        </table>
+        <button class="btn btn-secondary" style="font-size:12px; margin-top:6px;" onclick="addRoomRow()">+ Добавить комнату</button>
+    </div>
+</div>
+
+<!-- Создать жильца -->
+<div class="modal-overlay" id="tenant-modal">
+    <div class="modal">
+        <div class="modal-header">
+            <span role="button" onclick="closeModal('tenant-modal')">Отмена</span>
+            <span>Заселить жильца</span>
+            <span role="button" onclick="submitCreateTenant()">Создать</span>
+        </div>
+        <label class="small">Email</label>
+        <input type="email" id="t-email" placeholder="ivan@example.com">
+        <label class="small">Имя</label>
+        <input type="text" id="t-name" placeholder="Иван Петров">
+        <label class="small">Комната</label>
+        <select id="t-room"></select>
+        <p style="font-size:12px; color:var(--muted);">
+            Система сгенерирует временный пароль. Передайте его жильцу — при первом входе он сменит на свой.
+        </p>
+    </div>
+</div>
+
+<!-- Создать сотрудника -->
+<div class="modal-overlay" id="staff-modal">
+    <div class="modal">
+        <div class="modal-header">
+            <span role="button" onclick="closeModal('staff-modal')">Отмена</span>
+            <span>Новый сотрудник</span>
+            <span role="button" onclick="submitCreateStaff()">Создать</span>
+        </div>
+        <label class="small">Email</label>
+        <input type="email" id="s-email">
+        <label class="small">Имя</label>
+        <input type="text" id="s-name">
+        <label class="small">Роль</label>
+        <select id="s-role" onchange="onStaffRoleChanged()">
+            <option value="Cleaner">Cleaner</option>
+            <option value="Contractor">Contractor</option>
+            <option value="Reception">Reception</option>
+            <option value="Security">Security</option>
+            <option value="BuildingAdmin">Building Admin</option>
+        </select>
+        <div id="s-spec-block" style="display:none;">
+            <label class="small">Специализация</label>
+            <select id="s-spec">
+                <option value="Plumbing">Plumbing</option>
+                <option value="Electrical">Electrical</option>
+                <option value="Carpentry">Carpentry</option>
+                <option value="HvacContractor">HVAC</option>
+                <option value="Cleaning">Cleaning</option>
+                <option value="Locksmith">Locksmith</option>
+                <option value="Painting">Painting</option>
+                <option value="GeneralHandyman">General Handyman</option>
+            </select>
+        </div>
+    </div>
+</div>
+
+<!-- Показ временного пароля после создания юзера -->
+<div class="modal-overlay" id="temp-pass-modal">
+    <div class="modal">
+        <div class="modal-header">
+            <span></span>
+            <span>✅ Аккаунт создан</span>
+            <span role="button" onclick="closeTempPassModal()">Готово</span>
+        </div>
+        <p style="font-size:13px; color:var(--muted);">
+            <strong id="tp-name"></strong> · <span id="tp-email"></span>
+        </p>
+        <p style="font-size:13px; margin-bottom:6px;">Временный пароль:</p>
+        <div class="temp-pass" id="tp-password"></div>
+        <p style="font-size:12px; color:var(--orange); margin-top:10px;">
+            ⚠️ Этот пароль показывается один раз. Скопируйте и передайте пользователю.
+            При первом входе он будет обязан сменить его.
+        </p>
+        <button class="btn btn-blue" style="width:100%; margin-top:8px;" onclick="copyTempPass()">📋 Скопировать пароль</button>
     </div>
 </div>
 
@@ -292,33 +414,38 @@
 
 <script>
     /* =========================================================================
-     *  ADMIN PANEL — self-contained, одна страница
-     *  Auth: использует тот же JWT в localStorage, что index.html и maintenance.html
-     *  API: только endpoints, которые уже есть в phase 1-3
+     *  ADMIN PANEL — single-file, переписан в Onboarding-сессии
      * ========================================================================= */
 
     const API = '/api';
 
     const STATUS_LABELS = {
-        Reported:     { t: 'Новая',     c: '#007AFF' },
-        Acknowledged: { t: 'Принято',   c: '#FF9500' },
-        Assigned:     { t: 'Назначено', c: '#FF9500' },
-        InProgress:   { t: 'В работе',  c: '#AF52DE' },
-        Completed:    { t: 'Готово',    c: '#34C759' },
-        Cancelled:    { t: 'Отменено',  c: '#8E8E93' },
-        Rejected:     { t: 'Отклонено', c: '#FF3B30' }
+        Reported: { t: 'Новая', c: '#007AFF' }, Acknowledged: { t: 'Принято', c: '#FF9500' },
+        Assigned: { t: 'Назначено', c: '#FF9500' }, InProgress: { t: 'В работе', c: '#AF52DE' },
+        Completed: { t: 'Готово', c: '#34C759' }, Cancelled: { t: 'Отменено', c: '#8E8E93' },
+        Rejected: { t: 'Отклонено', c: '#FF3B30' }
     };
     const PRIORITY_ICONS = { Low: '🟢', Normal: '🟡', High: '🟠', Urgent: '🔴' };
     const CAT_ICONS = {
         Plumbing: '🔧', Electric: '⚡️', Furniture: '🪑', Appliance: '🧺',
         Hvac: '❄️', WindowsAndDoors: '🚪', Cleaning: '🧹', Internet: '🌐', Other: '📦'
     };
+    const ROOM_TYPE_LABELS = { Single: 'Single', Double: 'Double', Shared: 'Shared', Studio: 'Studio' };
+    const STAFF_ROLE_LABELS = {
+        BuildingAdmin: 'Admin', Reception: 'Reception', Cleaner: 'Cleaner',
+        Contractor: 'Contractor', Security: 'Security'
+    };
 
-    let currentBuilding = null; // { id, name }
+    let allBuildings = [];
+    let currentBuilding = null;       // { id, name, address }
+    let currentFloors = [];
+    let currentApartments = [];
+    let currentStaff = [];
+    let currentAvailableRooms = [];
     let allRequests = [];
-    let allStaff = [];
     let hub = null;
     let currentStatusFilter = '';
+    let lastTempPass = null;
 
     /* ========== Utilities ========== */
 
@@ -327,47 +454,38 @@
     function clearToken() { localStorage.removeItem('jwt'); }
 
     function parseJwt(t) {
-        try { return JSON.parse(atob(t.split('.')[1])); } catch(e) { return null; }
-    }
+        try {
+            // 1. Достаем полезную нагрузку
+            const base64Url = t.split('.')[1];
 
-    function myUserId() {
-        const t = token(); if (!t) return null;
-        const d = parseJwt(t); if (!d) return null;
-        return d['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'];
-    }
+            // 2. Исправляем Base64Url на стандартный Base64
+            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
 
-    function myUserName() {
-        const t = token(); if (!t) return null;
-        const d = parseJwt(t); if (!d) return null;
-        return d['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'];
-    }
+            // 3. Декодируем с поддержкой UTF-8
+            const jsonPayload = decodeURIComponent(
+                atob(base64)
+                    .split('')
+                    .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+                    .join('')
+            );
 
-    function myRole() {
-        const t = token();
-        if (!t) return null;
-        const d = parseJwt(t);
-        if (!d) return null;
-
-        // .NET может класть роль под несколькими ключами в зависимости от настроек.
-        // Проверяем все типичные варианты:
-        const candidates = [
-            d['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'],
-            d['role'],
-            d['Role'],
-            d['roles']
-        ];
-
-        for (const c of candidates) {
-            if (c == null) continue;
-            // Иногда роль приходит массивом ["Admin"] или строкой "Admin"
-            if (Array.isArray(c)) return c[0];
-            return c;
+            return JSON.parse(jsonPayload);
+        } catch(e) {
+            console.error("JWT Parse Error:", e);
+            return null;
         }
-
-        // Если совсем ничего не нашли — лог в консоль, чтобы было видно структуру токена.
-        console.warn('[admin.html] Role claim not found. JWT payload keys:', Object.keys(d));
-        console.warn('[admin.html] Full JWT payload:', d);
-        return null;
+    }
+    
+    function jwtField(name) {
+        const t = token(); if (!t) return null;
+        const d = parseJwt(t); return d ? d[name] : null;
+    }
+    function myUserId()   { return jwtField('http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'); }
+    function myUserName() { return jwtField('http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'); }
+    function myRole()     { return jwtField('http://schemas.microsoft.com/ws/2008/06/identity/claims/role'); }
+    function mustChangePassword() {
+        const v = jwtField('mustChangePassword');
+        return v === 'true' || v === true;
     }
 
     function esc(s) {
@@ -376,11 +494,10 @@
             '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
         }[c]));
     }
-
     function toast(msg) {
         const t = document.getElementById('toast');
         t.textContent = msg; t.classList.add('show');
-        setTimeout(() => t.classList.remove('show'), 2000);
+        setTimeout(() => t.classList.remove('show'), 2200);
     }
 
     async function api(endpoint, method = 'GET', body = null) {
@@ -391,19 +508,12 @@
 
         try {
             const res = await fetch(`${API}${endpoint}`, opts);
-            if (res.status === 401) {
-                toast('Сессия истекла'); clearToken();
-                setTimeout(() => render(), 500); return null;
-            }
-            if (res.status === 403) {
-                toast('Нет доступа'); return null;
-            }
+            if (res.status === 401) { toast('Сессия истекла'); clearToken(); setTimeout(render, 500); return null; }
+            if (res.status === 403) { toast('Нет доступа'); return null; }
             const data = await res.json().catch(() => null);
             if (!res.ok) { toast(data?.error || 'Ошибка'); return null; }
             return data ?? true;
-        } catch (e) {
-            console.error(e); toast('Сеть недоступна'); return null;
-        }
+        } catch (e) { console.error(e); toast('Сеть недоступна'); return null; }
     }
 
     function openModal(id)  { document.getElementById(id).classList.add('open'); }
@@ -420,25 +530,28 @@
         if (res?.token) {
             saveToken(res.token);
             const role = myRole();
-
-            if (role == null) {
-                toast('JWT не содержит роли — открой консоль (F12)');
-                console.error(
-                    '[admin.html] Login OK, но в токене нет claim роли.\n' +
-                    'Проверь LoginCommandHandler — должен быть:\n' +
-                    '  new Claim(ClaimTypes.Role, user.Role.ToString())'
-                );
-                clearToken();
-                return;
-            }
-
             if (role !== 'Admin' && role !== 'SuperAdmin') {
-                toast(`Роль "${role}" — не админ`);
-                console.warn(`[admin.html] Login OK, но role="${role}". Нужно Admin или SuperAdmin.`);
+                toast('Этот аккаунт не админ');
                 clearToken();
                 return;
             }
+            await render();
+        }
+    }
 
+    async function doChangePassword() {
+        const oldP = document.getElementById('cp-old').value;
+        const newP = document.getElementById('cp-new').value;
+        const conf = document.getElementById('cp-confirm').value;
+        if (!oldP || !newP) return toast('Заполни поля');
+        if (newP.length < 8) return toast('Новый пароль ≥ 8 символов');
+        if (newP !== conf)   return toast('Пароли не совпадают');
+
+        const res = await api('/Users/change-password', 'POST', { oldPassword: oldP, newPassword: newP });
+        if (res?.token) {
+            saveToken(res.token);
+            toast('Пароль изменён');
+            ['cp-old','cp-new','cp-confirm'].forEach(id => document.getElementById(id).value = '');
             await render();
         }
     }
@@ -450,158 +563,116 @@
         render();
     }
 
-    /* ========== Поиск "моего" здания ==========
-       Временное решение: админ входит, мы ищем его StaffAssignment через
-       первое здание, где у него есть открытые заявки. Либо fallback на
-       The Fizz Prague (единственное в сиде).
-       В онбординг-чате заменим на отдельный endpoint /api/admin/my-buildings. */
+    /* ========== Tabs ========== */
 
-    async function resolveBuilding() {
-        // Пока что для MVP берём дашборд — он и так покажет суммарные цифры по всем зданиям,
-        // где у юзера есть админ-права. А для фильтра заявок просто подставим здание из
-        // первой любой заявки. Эту логику ПЕРЕДЕЛАЕМ в онбординг-чате на правильную.
+    function switchTab(name) {
+        document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+        document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+        document.getElementById(`tab-${name}`).classList.add('active');
 
-        // Временный хак: пытаемся через /api/admin/dashboard. Если не получилось —
-        // просим юзера ввести BuildingId вручную (это для разработки, не для прода).
-        const dash = await api('/admin/dashboard');
-        if (!dash) return null;
-
-        // Угадываем BuildingId: делаем запрос без buildingId нельзя, но можем попробовать
-        // достать его через staffassignments юзера. В phase 3 такого endpoint'а пока нет,
-        // поэтому временно зашиваем через localStorage — админ один раз вводит, потом помним.
-
-        let bid = localStorage.getItem('admin_building_id');
-        if (!bid) {
-            bid = prompt(
-                'BuildingId The Fizz Prague\n\n' +
-                '(это временная мера — в следующей версии будет автовыбор).\n' +
-                'Возьми Guid из БД:\n\n' +
-                "  SELECT \"Id\" FROM \"Buildings\" WHERE \"Name\" = 'The Fizz Prague';"
-            );
-            if (!bid) return null;
-            localStorage.setItem('admin_building_id', bid.trim());
-        }
-
-        // Пробуем загрузить — если 400, значит не подходит.
-        const test = await api(`/Maintenance/building/${bid}`);
-        if (test === null) {
-            localStorage.removeItem('admin_building_id');
-            return null;
-        }
-
-        return { id: bid, name: 'The Fizz Prague' };
+        if (name === 'housing')      loadApartments();
+        else if (name === 'people')  loadStaff();
     }
 
-    /* ========== Загрузка данных ========== */
+    /* ========== Building selector ========== */
 
-    async function loadRequests() {
-        if (!currentBuilding) return;
+    async function loadBuildings() {
+        const list = await api('/admin/onboarding/buildings');
+        if (!list) return;
+        allBuildings = list;
 
-        const items = await api(`/Maintenance/building/${currentBuilding.id}`);
-        if (!items) {
-            document.getElementById('req-tbody').innerHTML =
-                '<tr><td colspan="8" class="empty">Не удалось загрузить</td></tr>';
+        const sel = document.getElementById('building-select');
+        sel.innerHTML = list.map(b => `<option value="${b.id}">${esc(b.name)}</option>`).join('');
+
+        if (list.length === 0) {
+            document.getElementById('building-sub').textContent = '⚠️ нет зданий, где вы админ';
             return;
         }
 
+        // Восстанавливаем выбор из localStorage если есть
+        const saved = localStorage.getItem('admin_building_id');
+        if (saved && list.some(b => b.id === saved)) sel.value = saved;
+
+        await onBuildingChanged();
+    }
+
+    async function onBuildingChanged() {
+        const sel = document.getElementById('building-select');
+        const id = sel.value;
+        currentBuilding = allBuildings.find(b => b.id === id);
+        if (!currentBuilding) return;
+
+        localStorage.setItem('admin_building_id', currentBuilding.id);
+        document.getElementById('building-sub').textContent = `📍 ${currentBuilding.name}`;
+
+        // Загружаем всё, что нужно для текущего здания
+        await Promise.all([loadFloors(), loadRequests(), loadStaff()]);
+        await setupSignalR();
+
+        // Если уже на housing-вкладке — перезагрузим квартиры
+        const activeTab = document.querySelector('.tab.active')?.dataset.tab;
+        if (activeTab === 'housing') loadApartments();
+    }
+
+    async function loadFloors() {
+        if (!currentBuilding) return;
+        const list = await api(`/admin/onboarding/buildings/${currentBuilding.id}/floors`);
+        currentFloors = list || [];
+    }
+
+    /* ========== Maintenance ========== */
+
+    async function loadRequests() {
+        if (!currentBuilding) return;
+        const items = await api(`/Maintenance/building/${currentBuilding.id}`);
+        if (!items) {
+            document.getElementById('req-tbody').innerHTML = '<tr><td colspan="8" class="empty">Не удалось загрузить</td></tr>';
+            return;
+        }
         allRequests = items;
         renderStats();
         renderTable();
     }
 
-    async function loadStaffHint() {
-        // У нас нет отдельного endpoint'а GetBuildingStaff, но staff нужен для
-        // dropdown'а Assign. Временно: при первом Assign подтягиваем один раз
-        // через /admin/tenants (там все пользователи) + фильтр по роли на клиенте.
-        // В следующей сессии добавим /api/admin/building/{id}/staff.
-        const users = await api('/admin/tenants');
-        if (users) {
-            allStaff = users.filter(u => u.role === 'Staff' || u.role === 'Admin');
-            renderStaffList();
-        }
-    }
-
-    function renderStaffList() {
-        const container = document.getElementById('staff-list');
-        if (allStaff.length === 0) {
-            container.innerHTML = '<p class="empty">Сотрудники не найдены</p>';
-            return;
-        }
-        container.innerHTML = allStaff.map(u => `
-    <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border);">
-      <div>
-        <div style="font-weight:500;">${esc(u.name)}</div>
-        <div style="font-size:12px; color:var(--muted);">${esc(u.email)} · ${esc(u.role)}</div>
-      </div>
-      <span class="badge" style="background:rgba(0,122,255,0.1); color:var(--blue); align-self:center;">
-        Карма: ${u.karmaScore}
-      </span>
-    </div>
-  `).join('');
-    }
-
-    /* ========== Статистика и таблица ========== */
-
     function renderStats() {
         const by = {};
-        for (const r of allRequests) {
-            by[r.status] = (by[r.status] || 0) + 1;
-        }
-        const urgent = allRequests.filter(r =>
-            r.priority === 'Urgent' && r.status !== 'Completed' && r.status !== 'Cancelled'
-        ).length;
-
+        for (const r of allRequests) by[r.status] = (by[r.status] || 0) + 1;
+        const urgent = allRequests.filter(r => r.priority === 'Urgent' && r.status !== 'Completed' && r.status !== 'Cancelled').length;
         document.getElementById('stat-reported').textContent = by.Reported || 0;
-        document.getElementById('stat-ack').textContent = by.Acknowledged || 0;
+        document.getElementById('stat-ack').textContent      = by.Acknowledged || 0;
         document.getElementById('stat-assigned').textContent = by.Assigned || 0;
         document.getElementById('stat-progress').textContent = by.InProgress || 0;
-        document.getElementById('stat-urgent').textContent = urgent;
+        document.getElementById('stat-urgent').textContent   = urgent;
     }
 
     function renderTable() {
         const tbody = document.getElementById('req-tbody');
-        const filtered = currentStatusFilter
-            ? allRequests.filter(r => r.status === currentStatusFilter)
-            : allRequests;
-
-        if (filtered.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="8" class="empty">Пусто по этому фильтру</td></tr>';
-            return;
-        }
-
+        const filtered = currentStatusFilter ? allRequests.filter(r => r.status === currentStatusFilter) : allRequests;
+        if (filtered.length === 0) { tbody.innerHTML = '<tr><td colspan="8" class="empty">Пусто</td></tr>'; return; }
         tbody.innerHTML = filtered.map(renderRow).join('');
     }
 
     function renderRow(r) {
         const status = STATUS_LABELS[r.status] || { t: r.status, c: '#8E8E93' };
-        const pIcon = PRIORITY_ICONS[r.priority] || '';
-        const cIcon = CAT_ICONS[r.category] || '📦';
-        const created = new Date(r.createdAt).toLocaleString([], {
-            day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
-        });
-
+        const created = new Date(r.createdAt).toLocaleString([], { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
         const where = [r.unitNumber, r.roomNumber].filter(Boolean).join(' / ') || '—';
-
-        let actions = [];
+        const actions = [];
         if (r.status === 'Reported') {
-            actions.push(`<button class="btn btn-ghost" onclick="ackRequest('${r.id}')">✓ Принять</button>`);
-            actions.push(`<button class="btn btn-blue" onclick="openAssignModal('${r.id}', '${esc(r.title)}')">→ Назначить</button>`);
+            actions.push(`<button class="btn btn-ghost" onclick="ackRequest('${r.id}')">✓</button>`);
+            actions.push(`<button class="btn btn-blue" onclick="openAssignModal('${r.id}','${esc(r.title)}')">→</button>`);
         } else if (r.status === 'Acknowledged') {
-            actions.push(`<button class="btn btn-blue" onclick="openAssignModal('${r.id}', '${esc(r.title)}')">→ Назначить</button>`);
+            actions.push(`<button class="btn btn-blue" onclick="openAssignModal('${r.id}','${esc(r.title)}')">→ Назначить</button>`);
         } else if (r.status === 'Assigned' || r.status === 'InProgress') {
-            actions.push(`<button class="btn btn-ghost" onclick="openAssignModal('${r.id}', '${esc(r.title)}')">Переназначить</button>`);
+            actions.push(`<button class="btn btn-ghost" onclick="openAssignModal('${r.id}','${esc(r.title)}')">Переназн.</button>`);
         } else if (r.status === 'Completed' && r.residentRating) {
-            actions.push(`<span style="font-size:12px; color:var(--muted);">${'⭐'.repeat(r.residentRating)}</span>`);
+            actions.push(`<span style="font-size:12px;">${'⭐'.repeat(r.residentRating)}</span>`);
         }
-
         return `
     <tr>
-      <td>
-        <div class="row-title">${pIcon} ${cIcon} ${esc(r.title)}</div>
-        <div class="row-desc">${esc(r.description)}</div>
-      </td>
-      <td><span class="badge" style="background:${status.c}15; color:${status.c};">${r.priority}</span></td>
-      <td><span class="badge" style="background:${status.c}20; color:${status.c};">${status.t}</span></td>
+      <td><div class="row-title">${PRIORITY_ICONS[r.priority] || ''} ${CAT_ICONS[r.category] || '📦'} ${esc(r.title)}</div>
+          <div class="row-desc">${esc(r.description)}</div></td>
+      <td><span class="badge" style="background:${status.c}15;color:${status.c};">${r.priority}</span></td>
+      <td><span class="badge" style="background:${status.c}20;color:${status.c};">${status.t}</span></td>
       <td style="font-size:12px;">${esc(where)}</td>
       <td style="font-size:12px;">${esc(r.reporterName)}</td>
       <td style="font-size:12px;">${r.assignedStaffName ? esc(r.assignedStaffName) : '—'}</td>
@@ -609,8 +680,6 @@
       <td style="white-space:nowrap;">${actions.join('') || '—'}</td>
     </tr>`;
     }
-
-    /* ========== Фильтры ========== */
 
     document.addEventListener('click', e => {
         const chip = e.target.closest('#status-filters .chip');
@@ -621,8 +690,6 @@
         renderTable();
     });
 
-    /* ========== Actions ========== */
-
     async function ackRequest(id) {
         const res = await api(`/Maintenance/${id}/acknowledge`, 'POST');
         if (res) { toast('Принято'); await loadRequests(); }
@@ -631,69 +698,290 @@
     function openAssignModal(maintenanceId, title) {
         document.getElementById('assign-maintenance-id').value = maintenanceId;
         document.getElementById('assign-context').textContent = `Заявка: ${title}`;
-
-        // Заполняем список сотрудников. Нам нужны их StaffAssignmentId, а не UserId.
-        // Временно: endpoint'а для списка staff с AssignmentId в этом здании нет.
-        // Проблема: API Assign принимает staffAssignmentId, а список у нас
-        // на уровне User. Поэтому сделаем обходной путь — попросим ввести ID вручную.
-        //
-        // Для следующей сессии: добавим GET /api/admin/buildings/{id}/staff
-        // с полями { staffAssignmentId, userName, role, specialization, isOnShift }.
-
-        const select = document.getElementById('assign-staff-select');
-
-        // На этапе MVP вытащим staffAssignmentId из SQL и зашьём в localStorage
-        // либо попросим ввести в форме. Сделаем второй вариант, но с подсказкой.
-        select.innerHTML = `
-    <option value="">-- Введите StaffAssignmentId вручную --</option>
-  `;
-
-        // Делаем поле ввода динамически, заменяя select.
-        select.outerHTML = `
-    <input type="text" id="assign-staff-select" placeholder="StaffAssignmentId (GUID)">
-    <p style="font-size:11px; color:var(--muted); margin:-4px 0 10px;">
-      Временно: возьми Guid из БД.<br>
-      <code style="font-size:10px;">SELECT sa."Id", u."Name", sa."Specialization" FROM "StaffAssignments" sa JOIN "Users" u ON u."Id" = sa."UserId" WHERE sa."BuildingId" = '${currentBuilding.id}';</code>
-    </p>
-  `;
-
+        const sel = document.getElementById('assign-staff-select');
+        const eligible = currentStaff.filter(s => s.isActive && s.role !== 'BuildingAdmin');
+        sel.innerHTML = eligible.length === 0
+            ? '<option value="">Нет доступных сотрудников</option>'
+            : eligible.map(s => {
+                const spec = s.specialization ? ` / ${s.specialization}` : '';
+                return `<option value="${s.staffAssignmentId}">${esc(s.name)} — ${s.role}${spec}</option>`;
+            }).join('');
         openModal('assign-modal');
     }
 
     async function submitAssign() {
         const maintenanceId = document.getElementById('assign-maintenance-id').value;
-        const staffId = document.getElementById('assign-staff-select').value.trim();
-        if (!staffId) return toast('Нужен StaffAssignmentId');
+        const staffId = document.getElementById('assign-staff-select').value;
+        if (!staffId) return toast('Выбери сотрудника');
+        const res = await api(`/Maintenance/${maintenanceId}/assign`, 'POST', { staffAssignmentId: staffId });
+        if (res) { toast('Назначено'); closeModal('assign-modal'); await loadRequests(); }
+    }
 
-        const res = await api(`/Maintenance/${maintenanceId}/assign`, 'POST', {
-            staffAssignmentId: staffId
+    /* ========== Housing tab: список квартир ========== */
+
+    async function loadApartments() {
+        if (!currentBuilding) return;
+        const list = await api(`/admin/onboarding/buildings/${currentBuilding.id}/apartments`);
+        currentApartments = list || [];
+        renderApartments();
+    }
+
+    function renderApartments() {
+        const c = document.getElementById('apartments-list');
+        if (currentApartments.length === 0) {
+            c.innerHTML = '<p class="empty">Квартир ещё нет. Нажми «Создать юнит».</p>';
+            return;
+        }
+        c.innerHTML = currentApartments.map(a => {
+            const rooms = a.rooms.map(r => {
+                const cls = r.currentOccupants >= r.maxOccupancy ? 'full'
+                    : r.currentOccupants === 0 ? 'empty' : '';
+                return `<span class="room-pill ${cls}">${esc(r.number)} · ${r.currentOccupants}/${r.maxOccupancy}</span>`;
+            }).join('');
+            return `
+            <div class="apt-card">
+                <div class="head">
+                    <div>
+                        <div class="name">${esc(a.name)}</div>
+                        <div class="meta">этаж ${a.floorNumber} · юнит ${esc(a.unitNumber || '—')}</div>
+                    </div>
+                </div>
+                <div style="margin-top:8px;">${rooms}</div>
+            </div>`;
+        }).join('');
+    }
+
+    /* ========== Housing tab: создать квартиру ========== */
+
+    function openCreateApartmentModal() {
+        if (!currentBuilding) return toast('Выбери здание');
+        if (currentFloors.length === 0) return toast('У здания нет этажей');
+
+        const fSel = document.getElementById('apt-floor');
+        fSel.innerHTML = currentFloors.map(f =>
+            `<option value="${f.id}">${f.number}${f.name ? ' — ' + esc(f.name) : ''}</option>`
+        ).join('');
+        document.getElementById('apt-unit').value = '';
+        document.getElementById('apt-name').value = '';
+        document.getElementById('apt-rooms-tbody').innerHTML = '';
+        applyPreset('studio'); // дефолтное состояние
+        openModal('apt-modal');
+    }
+
+    const PRESETS = {
+        studio:  [{ number: 'A', type: 'Studio', maxOccupancy: 1 }],
+        twin:    [{ number: 'A', type: 'Double', maxOccupancy: 2 }],
+        shared2: [{ number: 'A', type: 'Single', maxOccupancy: 1 }, { number: 'B', type: 'Single', maxOccupancy: 1 }],
+        shared3: [{ number: 'A', type: 'Single', maxOccupancy: 1 }, { number: 'B', type: 'Single', maxOccupancy: 1 }, { number: 'C', type: 'Single', maxOccupancy: 1 }],
+        shared4: [{ number: 'A', type: 'Single', maxOccupancy: 1 }, { number: 'B', type: 'Single', maxOccupancy: 1 }, { number: 'C', type: 'Single', maxOccupancy: 1 }, { number: 'D', type: 'Single', maxOccupancy: 1 }]
+    };
+
+    function applyPreset(name) {
+        const tpl = PRESETS[name] || PRESETS.studio;
+        const tbody = document.getElementById('apt-rooms-tbody');
+        tbody.innerHTML = tpl.map(roomRowHtml).join('');
+    }
+
+    function roomRowHtml(r = { number: '', type: 'Single', maxOccupancy: 1, squareMeters: '', monthlyRent: '' }) {
+        return `
+        <tr>
+            <td><input type="text" value="${esc(r.number)}" placeholder="A" data-f="number"></td>
+            <td>
+                <select data-f="type">
+                    <option ${r.type==='Single'?'selected':''}>Single</option>
+                    <option ${r.type==='Double'?'selected':''}>Double</option>
+                    <option ${r.type==='Shared'?'selected':''}>Shared</option>
+                    <option ${r.type==='Studio'?'selected':''}>Studio</option>
+                </select>
+            </td>
+            <td><input type="number" value="${r.maxOccupancy}" min="1" max="6" data-f="maxOccupancy" style="width:60px;"></td>
+            <td><input type="number" value="${r.squareMeters || ''}" step="0.1" placeholder="22.5" data-f="squareMeters" style="width:70px;"></td>
+            <td><input type="number" value="${r.monthlyRent || ''}" step="1" placeholder="850" data-f="monthlyRent" style="width:80px;"></td>
+            <td><span class="del" onclick="this.closest('tr').remove()">✕</span></td>
+        </tr>`;
+    }
+
+    function addRoomRow() {
+        const tbody = document.getElementById('apt-rooms-tbody');
+        tbody.insertAdjacentHTML('beforeend', roomRowHtml());
+    }
+
+    function collectRoomsFromTable() {
+        const rows = document.querySelectorAll('#apt-rooms-tbody tr');
+        const rooms = [];
+        for (const tr of rows) {
+            const get = f => tr.querySelector(`[data-f="${f}"]`).value.trim();
+            const r = {
+                number: get('number'),
+                type: get('type'),
+                maxOccupancy: parseInt(get('maxOccupancy'), 10),
+                squareMeters: get('squareMeters') ? parseFloat(get('squareMeters')) : null,
+                monthlyRent:  get('monthlyRent')  ? parseFloat(get('monthlyRent'))  : null
+            };
+            rooms.push(r);
+        }
+        return rooms;
+    }
+
+    async function submitCreateApartment() {
+        const floorId = document.getElementById('apt-floor').value;
+        const unitNumber = document.getElementById('apt-unit').value.trim();
+        const name = document.getElementById('apt-name').value.trim() || null;
+        const rooms = collectRoomsFromTable();
+
+        if (!floorId) return toast('Выбери этаж');
+        if (!unitNumber) return toast('Введи номер юнита');
+        if (rooms.length === 0) return toast('Нужна хотя бы одна комната');
+        if (rooms.some(r => !r.number)) return toast('У всех комнат должен быть номер');
+
+        const body = { buildingId: currentBuilding.id, floorId, unitNumber, name, rooms };
+        const res = await api('/admin/onboarding/apartments', 'POST', body);
+        if (res?.apartmentId) {
+            toast('Квартира создана');
+            closeModal('apt-modal');
+            await loadApartments();
+        }
+    }
+
+    /* ========== People tab: staff ========== */
+
+    async function loadStaff() {
+        if (!currentBuilding) return;
+        const list = await api(`/admin/onboarding/buildings/${currentBuilding.id}/staff`);
+        currentStaff = list || [];
+        renderStaff();
+    }
+
+    function renderStaff() {
+        const c = document.getElementById('staff-list');
+        if (currentStaff.length === 0) { c.innerHTML = '<p class="empty">Сотрудников нет</p>'; return; }
+        c.innerHTML = currentStaff.map(s => {
+            const spec = s.specialization ? ` / ${s.specialization}` : '';
+            const onShift = s.isOnShift ? '🟢 на смене' : '⚪️ не на смене';
+            return `
+            <div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--border);">
+                <div>
+                    <div style="font-weight:500;">${esc(s.name)}</div>
+                    <div style="font-size:12px; color:var(--muted);">
+                        ${esc(s.email)} · ${STAFF_ROLE_LABELS[s.role] || s.role}${spec}
+                    </div>
+                </div>
+                <span class="badge" style="background:rgba(0,122,255,0.1); color:var(--blue); align-self:center;">
+                    ${onShift} · ${s.completedTasksCount}✓
+                </span>
+            </div>`;
+        }).join('');
+    }
+
+    /* ========== People tab: create tenant ========== */
+
+    async function openCreateTenantModal() {
+        if (!currentBuilding) return toast('Выбери здание');
+        const rooms = await api(`/admin/onboarding/buildings/${currentBuilding.id}/available-rooms`);
+        currentAvailableRooms = rooms || [];
+
+        const sel = document.getElementById('t-room');
+        if (currentAvailableRooms.length === 0) {
+            sel.innerHTML = '<option value="">Нет свободных комнат</option>';
+        } else {
+            sel.innerHTML = currentAvailableRooms.map(r =>
+                `<option value="${r.roomId}">${esc(r.apartmentName)} · комн. ${esc(r.roomNumber)} · этаж ${r.floorNumber} (${r.currentOccupants}/${r.maxOccupancy})</option>`
+            ).join('');
+        }
+        document.getElementById('t-email').value = '';
+        document.getElementById('t-name').value = '';
+        openModal('tenant-modal');
+    }
+
+    async function submitCreateTenant() {
+        const email = document.getElementById('t-email').value.trim();
+        const name  = document.getElementById('t-name').value.trim();
+        const roomId = document.getElementById('t-room').value;
+        if (!email || !name) return toast('Заполни поля');
+        if (!roomId) return toast('Выбери комнату');
+
+        const res = await api('/admin/onboarding/tenants', 'POST', {
+            buildingId: currentBuilding.id, email, name, roomId
         });
-        if (res) {
-            toast('Назначено');
-            closeModal('assign-modal');
-            await loadRequests();
+        if (res?.tempPassword) {
+            closeModal('tenant-modal');
+            showTempPass(res);
+            await loadApartments(); // обновить счётчики
+        }
+    }
+
+    /* ========== People tab: create staff ========== */
+
+    function openCreateStaffModal() {
+        if (!currentBuilding) return toast('Выбери здание');
+        document.getElementById('s-email').value = '';
+        document.getElementById('s-name').value = '';
+        document.getElementById('s-role').value = 'Cleaner';
+        onStaffRoleChanged();
+        openModal('staff-modal');
+    }
+
+    function onStaffRoleChanged() {
+        const role = document.getElementById('s-role').value;
+        document.getElementById('s-spec-block').style.display = role === 'Contractor' ? 'block' : 'none';
+    }
+
+    async function submitCreateStaff() {
+        const email = document.getElementById('s-email').value.trim();
+        const name  = document.getElementById('s-name').value.trim();
+        const role  = document.getElementById('s-role').value;
+        const spec  = role === 'Contractor' ? document.getElementById('s-spec').value : null;
+        if (!email || !name) return toast('Заполни поля');
+
+        const res = await api('/admin/onboarding/staff', 'POST', {
+            buildingId: currentBuilding.id, email, name, role, specialization: spec
+        });
+        if (res?.tempPassword) {
+            closeModal('staff-modal');
+            showTempPass(res);
+            await loadStaff();
+        }
+    }
+
+    /* ========== Temp password modal ========== */
+
+    function showTempPass(created) {
+        lastTempPass = created.tempPassword;
+        document.getElementById('tp-name').textContent = created.name;
+        document.getElementById('tp-email').textContent = created.email;
+        document.getElementById('tp-password').textContent = created.tempPassword;
+        openModal('temp-pass-modal');
+    }
+    function closeTempPassModal() {
+        lastTempPass = null;
+        document.getElementById('tp-password').textContent = '';
+        closeModal('temp-pass-modal');
+    }
+    async function copyTempPass() {
+        if (!lastTempPass) return;
+        try {
+            await navigator.clipboard.writeText(lastTempPass);
+            toast('Пароль скопирован');
+        } catch (e) {
+            toast('Не удалось скопировать');
         }
     }
 
     /* ========== SignalR ========== */
 
     async function setupSignalR() {
-        if (hub) return;
+        if (hub) {
+            try { await hub.stop(); } catch(e){}
+            hub = null;
+        }
         hub = new signalR.HubConnectionBuilder()
             .withUrl('/hubs/coliving').withAutomaticReconnect().build();
-
-        hub.on('BuildingMaintenanceChanged', () => {
-            loadRequests();
-        });
-
+        hub.on('BuildingMaintenanceChanged', () => loadRequests());
         hub.onreconnected(() => document.getElementById('signalr-status').textContent = '✓');
-        hub.onclose(() => document.getElementById('signalr-status').textContent = '⚠️');
-
+        hub.onclose(()       => document.getElementById('signalr-status').textContent = '⚠️');
         try {
             await hub.start();
-            if (currentBuilding) {
-                await hub.invoke('JoinBuildingAdminGroup', currentBuilding.id);
-            }
+            if (currentBuilding) await hub.invoke('JoinBuildingAdminGroup', currentBuilding.id);
             document.getElementById('signalr-status').textContent = '✓';
         } catch (e) {
             console.error(e);
@@ -707,36 +995,29 @@
         const authed = !!token();
         const role = myRole();
         const isAdmin = authed && (role === 'Admin' || role === 'SuperAdmin');
+        const needsPwChange = authed && mustChangePassword();
 
-        document.getElementById('auth-block').style.display = isAdmin ? 'none' : 'block';
-        document.getElementById('main-content').style.display = isAdmin ? 'block' : 'none';
+        document.getElementById('auth-block').style.display       = authed ? 'none' : 'block';
+        document.getElementById('change-pass-block').style.display = needsPwChange ? 'block' : 'none';
+        document.getElementById('main-content').style.display     = (isAdmin && !needsPwChange) ? 'block' : 'none';
 
+        if (!authed) { document.getElementById('user-info').innerHTML = ''; return; }
+
+        if (needsPwChange) {
+            document.getElementById('user-info').innerHTML = `<a class="logout" onclick="doLogout()">отмена</a>`;
+            return;
+        }
         if (!isAdmin) {
-            document.getElementById('user-info').innerHTML = '';
-            if (authed && !isAdmin) {
-                document.getElementById('auth-block').innerHTML =
-                    '<h3 style="margin-top:0;">Доступ закрыт</h3>' +
-                    '<p>Этот аккаунт не админ. <a href="#" onclick="doLogout();return false;">Выйти</a></p>';
-            }
+            document.getElementById('auth-block').style.display = 'block';
+            document.getElementById('auth-block').innerHTML =
+                '<h3 style="margin-top:0;">Доступ закрыт</h3><p>Этот аккаунт не админ. <a href="#" onclick="doLogout();return false;">Выйти</a></p>';
             return;
         }
 
         document.getElementById('user-info').innerHTML =
             `${esc(myUserName() || '')} · <a class="logout" onclick="doLogout()">выйти</a>`;
 
-        if (!currentBuilding) {
-            currentBuilding = await resolveBuilding();
-            if (!currentBuilding) {
-                document.getElementById('building-sub').textContent =
-                    '⚠️ не удалось определить здание';
-                return;
-            }
-        }
-
-        document.getElementById('building-sub').textContent = `📍 ${currentBuilding.name}`;
-
-        await Promise.all([loadRequests(), loadStaffHint()]);
-        await setupSignalR();
+        if (allBuildings.length === 0) await loadBuildings();
     }
 
     render();

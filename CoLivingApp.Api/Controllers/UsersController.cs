@@ -2,6 +2,7 @@
 
 using System.Security.Claims;
 using CoLivingApp.Application.Features.Users.Commands.CreateUser;
+using CoLivingApp.Application.Features.Users.Commands.Auth;
 using CoLivingApp.Application.Features.Inventory.Commands.RemoveItem;
 using CoLivingApp.Application.Features.Inventory.Commands.MoveToCart;
 using MediatR;
@@ -23,6 +24,7 @@ public class UsersController : ControllerBase
 
     /// <summary>
     /// Регистрация/Синхронизация пользователя в БД.
+    /// (Legacy: используется при синхронизации с внешним провайдером — оставлено как есть.)
     /// </summary>
     [HttpPost]
     public async Task<IActionResult> CreateUser([FromBody] CreateUserCommand command)
@@ -36,6 +38,7 @@ public class UsersController : ControllerBase
 
         return Ok(new { userId = result.Value });
     }
+
     [HttpPut("{itemId}/cart")]
     public async Task<IActionResult> MoveToCart(Guid itemId, [FromBody] MoveItemToCartCommand command)
     {
@@ -51,14 +54,29 @@ public class UsersController : ControllerBase
         var result = await _mediator.Send(command);
         return result.IsSuccess ? Ok() : BadRequest(result.Error);
     }
+
+    /// <summary>
+    /// POST /api/Users/change-password
+    /// Принимает { oldPassword, newPassword }. UserId берётся из JWT.
+    /// Возвращает { token, mustChangePassword: false } — НОВЫЙ JWT,
+    /// который фронт должен немедленно сохранить вместо старого.
+    /// </summary>
     [Authorize]
     [HttpPost("change-password")]
-    public async Task<IActionResult> ChangePassword([FromBody] CoLivingApp.Application.Features.Users.Commands.Auth.ChangePasswordCommand command)
+    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest req)
     {
-        var userId = User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier);
-        var secureCommand = command with { UserId = userId! };
-        
-        var result = await _mediator.Send(secureCommand);
-        return result.IsSuccess ? Ok() : BadRequest(new { error = result.Error });
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+        var command = new ChangePasswordCommand(userId, req.OldPassword, req.NewPassword);
+        var result = await _mediator.Send(command);
+
+        return result.IsSuccess
+            ? Ok(new { token = result.Value!.Token, mustChangePassword = result.Value.MustChangePassword })
+            : BadRequest(new { error = result.Error });
     }
+
+    // Body-DTO без UserId — UserId берётся из JWT, чтобы клиент не мог
+    // подменить чужой ID.
+    public record ChangePasswordRequest(string OldPassword, string NewPassword);
 }
