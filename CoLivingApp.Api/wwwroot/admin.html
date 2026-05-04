@@ -97,6 +97,7 @@
             display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5);
             z-index: 100; align-items: center; justify-content: center; padding: 20px;
         }
+        
         .modal-overlay.open { display: flex; }
         .modal {
             background: var(--card); border-radius: 16px; padding: 20px;
@@ -206,6 +207,8 @@
         <select id="building-select" onchange="onBuildingChanged()"></select>
     </div>
 
+    <button id="btn-create-building" class="btn btn-blue" style="display:none; white-space:nowrap;" onclick="openCreateBuildingModal()">+ Здание</button>
+    
     <div class="tabs">
         <button class="tab active" data-tab="maintenance" onclick="switchTab('maintenance')">📋 Заявки</button>
         <button class="tab" data-tab="housing" onclick="switchTab('housing')">🏠 Жильё</button>
@@ -295,6 +298,32 @@
         <select id="assign-staff-select"></select>
     </div>
 </div>
+
+<!-- Создать здание (только SuperAdmin) -->
+<div class="modal-overlay" id="building-modal">
+    <div class="modal">
+        <div class="modal-header">
+            <span role="button" onclick="closeModal('building-modal')">Отмена</span>
+            <span>Новое здание</span>
+            <span role="button" onclick="submitCreateBuilding()">Создать</span>
+        </div>
+        <label class="small">Название</label>
+        <input type="text" id="b-name" placeholder="The Fizz Berlin">
+        <label class="small">Адрес</label>
+        <input type="text" id="b-address" placeholder="Karl-Marx-Allee 90">
+        <label class="small">Город</label>
+        <input type="text" id="b-city" placeholder="Berlin">
+        <label class="small">Страна (ISO-2)</label>
+        <input type="text" id="b-country" placeholder="DE" maxlength="2" style="text-transform:uppercase;">
+        <label class="small">Индекс (опц.)</label>
+        <input type="text" id="b-postal" placeholder="10243">
+        <label class="small">Часовой пояс (опц.)</label>
+        <input type="text" id="b-tz" placeholder="Europe/Berlin">
+        <label class="small">Этажей</label>
+        <input type="number" id="b-floors" value="5" min="1" max="100">
+    </div>
+</div>
+
 
 <!-- Создать квартиру -->
 <div class="modal-overlay" id="apt-modal">
@@ -483,6 +512,14 @@
     function myUserId()   { return jwtField('nameid') || jwtField('sub') || jwtField('http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'); }
     function myUserName() { return jwtField('unique_name') || jwtField('name') || jwtField('http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'); }
     function myRole()     { return jwtField('role') || jwtField('http://schemas.microsoft.com/ws/2008/06/identity/claims/role'); }
+
+    function isSuperAdmin() {
+        const r = myRole();
+        const roles = Array.isArray(r) ? r : [r];
+        return roles.includes('SuperAdmin');
+    }
+
+
     function mustChangePassword() {
         const v = jwtField('mustChangePassword');
         return v === 'true' || v === true;
@@ -616,14 +653,18 @@
         sel.innerHTML = list.map(b => `<option value="${b.id}">${esc(b.name)}</option>`).join('');
 
         if (list.length === 0) {
-            document.getElementById('building-sub').textContent = '⚠️ нет зданий, где вы админ';
+            const isSuper = (Array.isArray(myRole()) ? myRole() : [myRole()]).includes('SuperAdmin');
+            document.getElementById('building-sub').textContent = isSuper
+                ? '⚠️ В системе нет зданий. Создайте первое.'
+                : '⚠️ Вы не привязаны ни к одному зданию. Обратитесь к SuperAdmin.';
             return;
         }
-
         // Восстанавливаем выбор из localStorage если есть
         const saved = localStorage.getItem('admin_building_id');
         if (saved && list.some(b => b.id === saved)) sel.value = saved;
 
+        document.getElementById('btn-create-building').style.display = isSuperAdmin() ? 'inline-block' : 'none';
+        
         await onBuildingChanged();
     }
 
@@ -784,6 +825,39 @@
 
     /* ========== Housing tab: создать квартиру ========== */
 
+    function openCreateBuildingModal() {
+        ['b-name','b-address','b-city','b-country','b-postal','b-tz'].forEach(id => document.getElementById(id).value = '');
+        document.getElementById('b-floors').value = '5';
+        openModal('building-modal');
+    }
+
+    async function submitCreateBuilding() {
+        const body = {
+            name:        document.getElementById('b-name').value.trim(),
+            addressLine: document.getElementById('b-address').value.trim(),
+            city:        document.getElementById('b-city').value.trim(),
+            country:     document.getElementById('b-country').value.trim().toUpperCase(),
+            postalCode:  document.getElementById('b-postal').value.trim() || null,
+            timeZone:    document.getElementById('b-tz').value.trim() || null,
+            totalFloors: parseInt(document.getElementById('b-floors').value, 10),
+            operatorId:  null
+        };
+        if (!body.name || !body.addressLine || !body.city) return toast('Заполни обязательные поля');
+        if (body.country.length !== 2) return toast('Country = ISO-2 (CZ, DE)');
+
+        const res = await api('/admin/onboarding/buildings', 'POST', body);
+        if (res?.buildingId) {
+            toast('Здание создано');
+            closeModal('building-modal');
+            // Перезагружаем список зданий и выбираем новое
+            allBuildings = [];
+            await loadBuildings();
+            const sel = document.getElementById('building-select');
+            sel.value = res.buildingId;
+            await onBuildingChanged();
+        }
+    }
+    
     function openCreateApartmentModal() {
         if (!currentBuilding) return toast('Выбери здание');
         if (currentFloors.length === 0) return toast('У здания нет этажей');

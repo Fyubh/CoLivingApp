@@ -1,82 +1,135 @@
-using CoLivingApp.Application.Abstractions;
+using System.Security.Claims;
+using CoLivingApp.Application.Features.Onboarding.Commands.CreateApartment;
+using CoLivingApp.Application.Features.Onboarding.Commands.CreateStaff;
+using CoLivingApp.Application.Features.Onboarding.Commands.CreateTenant;
+using CoLivingApp.Application.Features.Onboarding.Queries.GetAvailableRooms;
+using CoLivingApp.Application.Features.Onboarding.Queries.GetBuildingApartments;
+using CoLivingApp.Application.Features.Onboarding.Queries.GetBuildingFloors;
+using CoLivingApp.Application.Features.Onboarding.Queries.GetBuildingStaff;
+using CoLivingApp.Application.Features.Onboarding.Queries.GetMyBuildings;
+using CoLivingApp.Application.Features.Onboarding.Commands.CreateBuilding;
 using CoLivingApp.Domain.Enums;
-using CoLivingApp.Domain.Shared;
 using MediatR;
-using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
-namespace CoLivingApp.Application.Features.Onboarding.Queries.GetBuildingApartments;
+namespace CoLivingApp.Api.Controllers;
 
-public record RoomInApartmentDto(
-    Guid RoomId,
-    string Number,
-    RoomType Type,
-    int CurrentOccupants,
-    int MaxOccupancy);
-
-public record ApartmentInBuildingDto(
-    Guid ApartmentId,
-    string Name,
-    string? UnitNumber,
-    int FloorNumber,
-    List<RoomInApartmentDto> Rooms);
-
-public record GetBuildingApartmentsQuery(string AdminUserId, Guid BuildingId)
-    : IRequest<Result<List<ApartmentInBuildingDto>>>;
-
-public class GetBuildingApartmentsQueryHandler
-    : IRequestHandler<GetBuildingApartmentsQuery, Result<List<ApartmentInBuildingDto>>>
+[ApiController]
+[Route("api/admin/onboarding")]
+[Authorize(Roles = "Admin,SuperAdmin")]
+public class OnboardingController : ControllerBase
 {
-    private readonly IApplicationDbContext _context;
-    public GetBuildingApartmentsQueryHandler(IApplicationDbContext context) => _context = context;
+    private readonly IMediator _mediator;
+    public OnboardingController(IMediator mediator) => _mediator = mediator;
 
-    public async Task<Result<List<ApartmentInBuildingDto>>> Handle(
-        GetBuildingApartmentsQuery request, CancellationToken ct)
+    private string? CurrentUserId() => User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+    // ========== СОЗДАНИЕ ЮЗЕРОВ ==========
+
+    public record CreateTenantRequest(Guid BuildingId, string Email, string Name, Guid RoomId);
+
+    [HttpPost("tenants")]
+    public async Task<IActionResult> CreateTenant([FromBody] CreateTenantRequest req)
     {
-        var isAdmin = await _context.StaffAssignments.AnyAsync(s =>
-            s.UserId == request.AdminUserId
-            && s.BuildingId == request.BuildingId
-            && s.Role == StaffRole.BuildingAdmin
-            && s.IsActive, ct);
-        if (!isAdmin)
-            return Result<List<ApartmentInBuildingDto>>.Failure(
-                "У вас нет прав администратора в этом здании.");
+        var adminId = CurrentUserId(); if (string.IsNullOrEmpty(adminId)) return Unauthorized();
+        var result = await _mediator.Send(new CreateTenantUserCommand(
+            adminId, req.BuildingId, req.Email, req.Name, req.RoomId));
+        return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
+    }
 
-        // Берём плоский список (apartmentId, room, occupants), потом группируем на клиенте.
-        // Group + correlated subquery в EF Core надёжнее в плоском виде.
-        var rawRows = await _context.Apartments
-            .Where(a => a.BuildingId == request.BuildingId)
-            .SelectMany(a => a.Rooms.Select(r => new
-            {
-                ApartmentId = a.Id,
-                ApartmentName = a.Name,
-                a.UnitNumber,
-                FloorNumber = a.Floor!.Number,
-                RoomId = r.Id,
-                RoomNumber = r.Number,
-                RoomType = r.Type,
-                MaxOccupancy = r.MaxOccupancy,
-                CurrentOccupants = _context.ApartmentMembers
-                    .Count(m => m.RoomId == r.Id && m.IsActive)
-            }))
-            .ToListAsync(ct);
+    public record CreateStaffRequest(Guid BuildingId, string Email, string Name,
+        StaffRole Role, ContractorType? Specialization);
 
-        // Группируем in-memory: один Apartment → много Rooms.
-        var grouped = rawRows
-            .GroupBy(x => new { x.ApartmentId, x.ApartmentName, x.UnitNumber, x.FloorNumber })
-            .OrderBy(g => g.Key.FloorNumber)
-            .ThenBy(g => g.Key.UnitNumber)
-            .Select(g => new ApartmentInBuildingDto(
-                g.Key.ApartmentId,
-                g.Key.ApartmentName,
-                g.Key.UnitNumber,
-                g.Key.FloorNumber,
-                g.OrderBy(r => r.RoomNumber)
-                 .Select(r => new RoomInApartmentDto(
-                    r.RoomId, r.RoomNumber, r.RoomType,
-                    r.CurrentOccupants, r.MaxOccupancy))
-                 .ToList()))
-            .ToList();
+    [HttpPost("staff")]
+    public async Task<IActionResult> CreateStaff([FromBody] CreateStaffRequest req)
+    {
+        var adminId = CurrentUserId(); if (string.IsNullOrEmpty(adminId)) return Unauthorized();
+        var result = await _mediator.Send(new CreateStaffUserCommand(
+            adminId, req.BuildingId, req.Email, req.Name, req.Role, req.Specialization));
+        return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
+    }
 
-        return Result<List<ApartmentInBuildingDto>>.Success(grouped);
+    // ========== СОЗДАНИЕ КВАРТИРЫ ==========
+
+    public record CreateApartmentRequest(Guid BuildingId, Guid FloorId,
+        string UnitNumber, string? Name, List<RoomTemplate> Rooms);
+
+    [HttpPost("apartments")]
+    public async Task<IActionResult> CreateApartment([FromBody] CreateApartmentRequest req)
+    {
+        var adminId = CurrentUserId(); if (string.IsNullOrEmpty(adminId)) return Unauthorized();
+        var result = await _mediator.Send(new CreateApartmentCommand(
+            adminId, req.BuildingId, req.FloorId, req.UnitNumber, req.Name, req.Rooms));
+        return result.IsSuccess ? Ok(new { apartmentId = result.Value }) : BadRequest(new { error = result.Error });
+    }
+
+    // ========== СПРАВОЧНИКИ ==========
+
+    [HttpGet("buildings")]
+    public async Task<IActionResult> GetMyBuildings()
+    {
+        var adminId = CurrentUserId(); if (string.IsNullOrEmpty(adminId)) return Unauthorized();
+        var result = await _mediator.Send(new GetMyBuildingsQuery(adminId));
+        return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
+    }
+
+    [HttpGet("buildings/{buildingId:guid}/floors")]
+    public async Task<IActionResult> GetFloors(Guid buildingId)
+    {
+        var adminId = CurrentUserId(); if (string.IsNullOrEmpty(adminId)) return Unauthorized();
+        var result = await _mediator.Send(new GetBuildingFloorsQuery(adminId, buildingId));
+        return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
+    }
+
+    [HttpGet("buildings/{buildingId:guid}/available-rooms")]
+    public async Task<IActionResult> GetAvailableRooms(Guid buildingId)
+    {
+        var adminId = CurrentUserId(); if (string.IsNullOrEmpty(adminId)) return Unauthorized();
+        var result = await _mediator.Send(new GetAvailableRoomsQuery(adminId, buildingId));
+        return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
+    }
+
+    [HttpGet("buildings/{buildingId:guid}/staff")]
+    public async Task<IActionResult> GetStaff(Guid buildingId)
+    {
+        var adminId = CurrentUserId(); if (string.IsNullOrEmpty(adminId)) return Unauthorized();
+        var result = await _mediator.Send(new GetBuildingStaffQuery(adminId, buildingId));
+        return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
+    }
+
+    /// <summary>Все квартиры здания со всеми комнатами и счётчиками жильцов.</summary>
+    [HttpGet("buildings/{buildingId:guid}/apartments")]
+    public async Task<IActionResult> GetApartments(Guid buildingId)
+    {
+        var adminId = CurrentUserId(); if (string.IsNullOrEmpty(adminId)) return Unauthorized();
+        var result = await _mediator.Send(new GetBuildingApartmentsQuery(adminId, buildingId));
+        return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
+    }
+    
+    // ========== СОЗДАНИЕ ЗДАНИЯ (только SuperAdmin) ==========
+
+    public record CreateBuildingRequest(
+        string Name,
+        string AddressLine,
+        string City,
+        string Country,
+        string? PostalCode,
+        string? TimeZone,
+        int TotalFloors,
+        Guid? OperatorId
+    );
+
+    [HttpPost("buildings")]
+    [Authorize(Roles = "SuperAdmin")]
+    public async Task<IActionResult> CreateBuilding([FromBody] CreateBuildingRequest req)
+    {
+        var userId = CurrentUserId(); if (string.IsNullOrEmpty(userId)) return Unauthorized();
+        var result = await _mediator.Send(new CreateBuildingCommand(
+            userId, req.Name, req.AddressLine, req.City, req.Country,
+            req.PostalCode, req.TimeZone, req.TotalFloors, req.OperatorId));
+        return result.IsSuccess
+            ? Ok(new { buildingId = result.Value })
+            : BadRequest(new { error = result.Error });
     }
 }
