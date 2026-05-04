@@ -7,6 +7,7 @@ import type {
     BuildingDto,
     BuildingResidentDto,
     ContractorType,
+    CreateBuildingRequest,
     CreatedUserDto,
     FloorDto,
     MaintenanceRequestDto,
@@ -76,6 +77,16 @@ function App() {
     const [noticeTitle, setNoticeTitle] = useState('');
     const [noticeBody, setNoticeBody] = useState('');
     const [noticeImportant, setNoticeImportant] = useState(true);
+
+    const [newBuilding, setNewBuilding] = useState<CreateBuildingRequest>({
+        name: '',
+        addressLine: '',
+        city: '',
+        country: 'CZ',
+        postalCode: '',
+        timeZone: 'Europe/Prague',
+        totalFloors: 1,
+    });
 
     const selectedBuilding = useMemo(
         () => buildings.find((building) => building.id === selectedBuildingId) || null,
@@ -270,6 +281,38 @@ function App() {
         }, 'Исполнитель назначен');
     }
 
+    async function handleCreateBuilding(event: FormEvent) {
+        event.preventDefault();
+        if (newBuilding.country.trim().length !== 2) {
+            setMessage('Country code must be 2 letters (e.g. CZ, DE).');
+            return;
+        }
+        if (newBuilding.totalFloors < 1) {
+            setMessage('Floors must be at least 1.');
+            return;
+        }
+
+        await run(async () => {
+            const created = await adminService.createBuilding({
+                ...newBuilding,
+                country: newBuilding.country.trim().toUpperCase(),
+                postalCode: newBuilding.postalCode || null,
+                timeZone: newBuilding.timeZone || null,
+            });
+            setNewBuilding({
+                name: '',
+                addressLine: '',
+                city: '',
+                country: 'CZ',
+                postalCode: '',
+                timeZone: 'Europe/Prague',
+                totalFloors: 1,
+            });
+            await loadBuildings();
+            setSelectedBuildingId(created.buildingId);
+        }, 'Building created');
+    }
+
     async function handleSendNotice(event: FormEvent) {
         event.preventDefault();
         if (!selectedBuildingId) return;
@@ -331,6 +374,16 @@ function App() {
         );
     }
 
+    if (buildings.length === 0) {
+        return (
+            <AuthShell title="Create your first building" message={message} busy={busy}>
+                <p className="helper-text">No buildings yet. As SuperAdmin you can register a new one.</p>
+                <CreateBuildingForm value={newBuilding} onChange={setNewBuilding} onSubmit={handleCreateBuilding} busy={busy} />
+                <button className="danger-button" onClick={logout}>Logout</button>
+            </AuthShell>
+        );
+    }
+
     return (
         <div className="app-shell">
             <aside className="sidebar">
@@ -380,6 +433,12 @@ function App() {
 
                 {tab === 'setup' && (
                     <section className="grid-two">
+                        <div className="panel">
+                            <PanelTitle icon="bi-buildings-fill" title="Add another building" />
+                            <p className="helper-text">SuperAdmin only. New building creator becomes its admin automatically.</p>
+                            <CreateBuildingForm value={newBuilding} onChange={setNewBuilding} onSubmit={handleCreateBuilding} busy={busy} />
+                        </div>
+
                         <form className="panel" onSubmit={handleCreateApartment}>
                             <PanelTitle icon="bi-door-open-fill" title="Create unit and rooms" />
                             <div className="form-row">
@@ -663,6 +722,53 @@ function PanelTitle({ icon, title }: { icon: string; title: string }) {
             <i className={`bi ${icon}`} />
             <h2>{title}</h2>
         </div>
+    );
+}
+
+function CreateBuildingForm({ value, onChange, onSubmit, busy }: {
+    value: CreateBuildingRequest;
+    onChange: (next: CreateBuildingRequest) => void;
+    onSubmit: (event: FormEvent) => void;
+    busy: boolean;
+}) {
+    return (
+        <form className="auth-form" onSubmit={onSubmit}>
+            <label>Name</label>
+            <input value={value.name} onChange={(e) => onChange({ ...value, name: e.target.value })} placeholder="The Fizz Prague" required />
+            <label>Address</label>
+            <input value={value.addressLine} onChange={(e) => onChange({ ...value, addressLine: e.target.value })} placeholder="Jateční 1530/37" required />
+            <div className="form-grid">
+                <div>
+                    <label>City</label>
+                    <input value={value.city} onChange={(e) => onChange({ ...value, city: e.target.value })} placeholder="Prague" required />
+                </div>
+                <div>
+                    <label>Country (ISO-2)</label>
+                    <input value={value.country} onChange={(e) => onChange({ ...value, country: e.target.value.toUpperCase() })} placeholder="CZ" maxLength={2} required />
+                </div>
+            </div>
+            <div className="form-grid">
+                <div>
+                    <label>Postal code</label>
+                    <input value={value.postalCode || ''} onChange={(e) => onChange({ ...value, postalCode: e.target.value })} placeholder="170 00" />
+                </div>
+                <div>
+                    <label>Time zone</label>
+                    <input value={value.timeZone || ''} onChange={(e) => onChange({ ...value, timeZone: e.target.value })} placeholder="Europe/Prague" />
+                </div>
+            </div>
+            <label>Total floors</label>
+            <input
+                type="number"
+                min={1}
+                value={value.totalFloors}
+                onChange={(e) => onChange({ ...value, totalFloors: Number(e.target.value) || 1 })}
+            />
+            <button className="primary-button" disabled={busy}>
+                <i className="bi bi-plus-lg" />
+                Create building
+            </button>
+        </form>
     );
 }
 

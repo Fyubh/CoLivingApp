@@ -95,6 +95,21 @@ public class CreateBuildingCommandHandler
         };
 
         _context.Buildings.Add(building);
+
+        // 5. Сразу делаем создателя BuildingAdmin'ом нового здания.
+        // Без этого SuperAdmin не сможет ни создать комнаты, ни принять заявки —
+        // все остальные хендлеры авторизуют по StaffAssignment.BuildingAdmin.
+        // Для MVP это приемлемо: позже SuperAdmin сможет назначить отдельного Admin
+        // и снять с себя assignment.
+        _context.StaffAssignments.Add(new StaffAssignment
+        {
+            UserId = request.RequestingUserId,
+            BuildingId = building.Id,
+            Role = StaffRole.BuildingAdmin,
+            IsActive = true,
+            IsOnShift = false
+        });
+
         await _context.SaveChangesAsync(ct);
 
         return Result<Guid>.Success(building.Id);

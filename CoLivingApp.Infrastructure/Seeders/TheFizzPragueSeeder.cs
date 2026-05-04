@@ -21,11 +21,19 @@ public static class TheFizzPragueSeeder
     // Тестовые логины staff — пароль для всех: "fizz123!" (хэш ниже подставляется BCrypt на лету)
     private const string DefaultStaffPassword = "fizz123!";
 
+    // SuperAdmin — единственный пользователь, который может создавать здания.
+    // Создаётся всегда, независимо от того, засеяно ли демо-здание The Fizz Prague.
+    private const string SuperAdminEmail = "owner@coliving.test";
+    private const string SuperAdminPassword = "owner123!";
+    private const string SuperAdminName = "Platform Owner";
+
     public static async Task SeedAsync(IServiceProvider serviceProvider, CancellationToken ct = default)
     {
         using var scope = serviceProvider.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         var logger = scope.ServiceProvider.GetRequiredService<ILogger<ApplicationDbContext>>();
+
+        await EnsureSuperAdminSeeded(db, logger, ct);
 
         var existing = await db.Operators
             .FirstOrDefaultAsync(o => o.Slug == OperatorSlug, ct);
@@ -89,6 +97,47 @@ public static class TheFizzPragueSeeder
         await db.SaveChangesAsync(ct);
         logger.LogInformation("TheFizzPragueSeeder: full seed done ({Apartments} apartments, 3 staff).",
             floors.Length * 5);
+    }
+
+    /// <summary>
+    /// Гарантирует, что в системе существует ровно один SuperAdmin.
+    /// SuperAdmin не привязан к зданию — он создаёт здания, а потом получает
+    /// StaffAssignment(BuildingAdmin) автоматически из CreateBuildingCommand.
+    /// </summary>
+    private static async Task EnsureSuperAdminSeeded(ApplicationDbContext db, ILogger logger, CancellationToken ct)
+    {
+        var emailLower = SuperAdminEmail.ToLowerInvariant();
+        var existing = await db.Users
+            .FirstOrDefaultAsync(u => u.Email.ToLower() == emailLower, ct);
+
+        if (existing != null)
+        {
+            // На случай старой БД, где этот юзер был создан с другой ролью —
+            // подтянем его к актуальной SuperAdmin-роли.
+            if (existing.Role != UserRole.SuperAdmin)
+            {
+                existing.Role = UserRole.SuperAdmin;
+                existing.AccessLevel = 10;
+                await db.SaveChangesAsync(ct);
+                logger.LogInformation("TheFizzPragueSeeder: promoted existing user {Email} to SuperAdmin.", SuperAdminEmail);
+            }
+            return;
+        }
+
+        var owner = new User
+        {
+            Email = emailLower,
+            Name = SuperAdminName,
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(SuperAdminPassword),
+            Role = UserRole.SuperAdmin,
+            AccessLevel = 10,
+            KarmaScore = 100,
+            MustChangePassword = false
+        };
+        db.Users.Add(owner);
+        await db.SaveChangesAsync(ct);
+        logger.LogInformation("TheFizzPragueSeeder: created SuperAdmin {Email} (password={Password}).",
+            SuperAdminEmail, SuperAdminPassword);
     }
 
     private static async Task EnsureStaffSeeded(ApplicationDbContext db, ILogger logger, CancellationToken ct)

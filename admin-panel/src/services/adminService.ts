@@ -107,6 +107,16 @@ export interface CreatedUserDto {
     tempPassword: string;
 }
 
+export interface CreateBuildingRequest {
+    name: string;
+    addressLine: string;
+    city: string;
+    country: string;
+    postalCode?: string | null;
+    timeZone?: string | null;
+    totalFloors: number;
+}
+
 export const adminService = {
     login: async (email: string, password: string): Promise<LoginResponse> => {
         const response = await api.post<LoginResponse>('/Auth/login', { email, password });
@@ -120,6 +130,20 @@ export const adminService = {
 
     getBuildings: async (): Promise<BuildingDto[]> => {
         const response = await api.get<BuildingDto[]>('/admin/onboarding/buildings');
+        return response.data;
+    },
+
+    createBuilding: async (payload: CreateBuildingRequest): Promise<{ buildingId: string }> => {
+        const response = await api.post<{ buildingId: string }>('/admin/onboarding/buildings', {
+            name: payload.name,
+            addressLine: payload.addressLine,
+            city: payload.city,
+            country: payload.country,
+            postalCode: payload.postalCode || null,
+            timeZone: payload.timeZone || null,
+            totalFloors: payload.totalFloors,
+            operatorId: null,
+        });
         return response.data;
     },
 

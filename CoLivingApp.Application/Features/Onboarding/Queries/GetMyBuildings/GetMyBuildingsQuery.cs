@@ -8,63 +8,53 @@ namespace CoLivingApp.Application.Features.Onboarding.Queries.GetMyBuildings;
 
 /// <summary>
 /// "Какие здания мне доступны как админу?"
-/// Закрывает старый костыль, где BuildingId надо было вводить через prompt.
 ///
 /// Admin      — только привязанные через активный StaffAssignment (BuildingAdmin).
-/// SuperAdmin — ВСЕ активные здания в системе (для онбординга и привязки админов).
-///
-/// Address собирается из двух полей Building.AddressLine + Building.City —
-/// фронту удобно показать одной строкой, а отдельно эти поля на этом экране не нужны.
+/// SuperAdmin — ВСЕ активные здания в системе. SuperAdmin создаёт здания,
+///              CreateBuildingCommand сразу же добавляет ему BuildingAdmin-assignment,
+///              так что обычно у него тоже есть assignments. Но мы всё равно показываем
+///              ему все здания — на случай, когда другой SuperAdmin создал здание раньше.
 /// </summary>
-public record BuildingShortDto(Guid Id, string Name, string Address);
-
 public record GetMyBuildingsQuery(string AdminUserId)
-    : IRequest<Result<List<BuildingShortDto>>>;
+    : IRequest<Result<List<BuildingDto>>>;
 
 public class GetMyBuildingsQueryHandler
-    : IRequestHandler<GetMyBuildingsQuery, Result<List<BuildingShortDto>>>
+    : IRequestHandler<GetMyBuildingsQuery, Result<List<BuildingDto>>>
 {
     private readonly IApplicationDbContext _context;
     public GetMyBuildingsQueryHandler(IApplicationDbContext context) => _context = context;
 
-    public async Task<Result<List<BuildingShortDto>>> Handle(
+    public async Task<Result<List<BuildingDto>>> Handle(
         GetMyBuildingsQuery request, CancellationToken ct)
     {
-        // Сначала узнаём роль — она определяет, что именно вернуть.
         var user = await _context.Users
             .FirstOrDefaultAsync(u => u.Id == request.AdminUserId, ct);
 
         if (user == null)
-            return Result<List<BuildingShortDto>>.Failure("Пользователь не найден.");
+            return Result<List<BuildingDto>>.Failure("Пользователь не найден.");
 
-        // SuperAdmin видит все активные здания — даже если у него нет StaffAssignment.
-        // Это нужно, чтобы он мог привязывать обычных Admin к зданиям.
         if (user.Role == UserRole.SuperAdmin)
         {
             var all = await _context.Buildings
                 .Where(b => b.IsActive)
-                .Select(b => new BuildingShortDto(
-                    b.Id,
-                    b.Name,
-                    (b.AddressLine ?? string.Empty) + ", " + (b.City ?? string.Empty)))
+                .OrderBy(b => b.Name)
+                .Select(b => new BuildingDto(b.Id, b.Name, b.City, b.Country, b.IsActive))
                 .ToListAsync(ct);
 
-            return Result<List<BuildingShortDto>>.Success(all);
+            return Result<List<BuildingDto>>.Success(all);
         }
 
-        // Admin — только здания, где он BuildingAdmin через активный StaffAssignment.
         var buildings = await _context.StaffAssignments
             .Where(s => s.UserId == request.AdminUserId
                         && s.Role == StaffRole.BuildingAdmin
                         && s.IsActive)
             .Select(s => s.Building!)
+            .Where(b => b.IsActive)
             .Distinct()
-            .Select(b => new BuildingShortDto(
-                b.Id,
-                b.Name,
-                (b.AddressLine ?? string.Empty) + ", " + (b.City ?? string.Empty)))
+            .OrderBy(b => b.Name)
+            .Select(b => new BuildingDto(b.Id, b.Name, b.City, b.Country, b.IsActive))
             .ToListAsync(ct);
 
-        return Result<List<BuildingShortDto>>.Success(buildings);
+        return Result<List<BuildingDto>>.Success(buildings);
     }
 }
