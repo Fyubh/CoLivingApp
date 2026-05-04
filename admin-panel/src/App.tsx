@@ -19,6 +19,21 @@ import type {
 import { API_BASE_URL } from './services/api';
 
 type Tab = 'setup' | 'people' | 'maintenance' | 'notifications';
+type Role = 'Tenant' | 'Staff' | 'Admin' | 'SuperAdmin' | null;
+
+const ROLE_CLAIM = 'http://schemas.microsoft.com/ws/2008/06/identity/claims/role';
+
+function decodeRole(token: string | null): Role {
+    if (!token) return null;
+    try {
+        const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+        const raw = payload[ROLE_CLAIM] ?? payload.role ?? null;
+        if (raw === 'SuperAdmin' || raw === 'Admin' || raw === 'Staff' || raw === 'Tenant') return raw;
+        return null;
+    } catch {
+        return null;
+    }
+}
 
 const defaultRooms: RoomTemplate[] = [
     { number: 'A', type: 'Studio', maxOccupancy: 1, squareMeters: 22, monthlyRent: 850 },
@@ -39,6 +54,8 @@ const roomTypes: RoomType[] = ['Studio', 'Single', 'Double', 'Shared'];
 
 function App() {
     const [token, setToken] = useState(() => localStorage.getItem('admin_token') || '');
+    const role = useMemo<Role>(() => decodeRole(token), [token]);
+    const isSuperAdmin = role === 'SuperAdmin';
     const [mustChangePassword, setMustChangePassword] = useState(false);
     const [adminEmail, setAdminEmail] = useState('maria.admin@fizz.test');
     const [adminPassword, setAdminPassword] = useState('fizz123!');
@@ -376,9 +393,18 @@ function App() {
 
     if (buildings.length === 0) {
         return (
-            <AuthShell title="Create your first building" message={message} busy={busy}>
-                <p className="helper-text">No buildings yet. As SuperAdmin you can register a new one.</p>
-                <CreateBuildingForm value={newBuilding} onChange={setNewBuilding} onSubmit={handleCreateBuilding} busy={busy} />
+            <AuthShell title={isSuperAdmin ? 'Create your first building' : 'No building assigned'} message={message} busy={busy}>
+                {isSuperAdmin ? (
+                    <>
+                        <p className="helper-text">No buildings yet. Register one to get started.</p>
+                        <CreateBuildingForm value={newBuilding} onChange={setNewBuilding} onSubmit={handleCreateBuilding} busy={busy} />
+                    </>
+                ) : (
+                    <p className="helper-text">
+                        Your account is not assigned to any building yet. Ask the platform owner (SuperAdmin) to add you as
+                        a Building Admin, then sign in again.
+                    </p>
+                )}
                 <button className="danger-button" onClick={logout}>Logout</button>
             </AuthShell>
         );
@@ -433,11 +459,13 @@ function App() {
 
                 {tab === 'setup' && (
                     <section className="grid-two">
-                        <div className="panel">
-                            <PanelTitle icon="bi-buildings-fill" title="Add another building" />
-                            <p className="helper-text">SuperAdmin only. New building creator becomes its admin automatically.</p>
-                            <CreateBuildingForm value={newBuilding} onChange={setNewBuilding} onSubmit={handleCreateBuilding} busy={busy} />
-                        </div>
+                        {isSuperAdmin && (
+                            <div className="panel">
+                                <PanelTitle icon="bi-buildings-fill" title="Add another building" />
+                                <p className="helper-text">New building creator becomes its admin automatically.</p>
+                                <CreateBuildingForm value={newBuilding} onChange={setNewBuilding} onSubmit={handleCreateBuilding} busy={busy} />
+                            </div>
+                        )}
 
                         <form className="panel" onSubmit={handleCreateApartment}>
                             <PanelTitle icon="bi-door-open-fill" title="Create unit and rooms" />
