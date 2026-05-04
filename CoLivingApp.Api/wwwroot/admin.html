@@ -480,9 +480,9 @@
         const t = token(); if (!t) return null;
         const d = parseJwt(t); return d ? d[name] : null;
     }
-    function myUserId()   { return jwtField('http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'); }
-    function myUserName() { return jwtField('http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'); }
-    function myRole()     { return jwtField('http://schemas.microsoft.com/ws/2008/06/identity/claims/role'); }
+    function myUserId()   { return jwtField('nameid') || jwtField('sub') || jwtField('http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'); }
+    function myUserName() { return jwtField('unique_name') || jwtField('name') || jwtField('http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'); }
+    function myRole()     { return jwtField('role') || jwtField('http://schemas.microsoft.com/ws/2008/06/identity/claims/role'); }
     function mustChangePassword() {
         const v = jwtField('mustChangePassword');
         return v === 'true' || v === true;
@@ -510,10 +510,34 @@
             const res = await fetch(`${API}${endpoint}`, opts);
             if (res.status === 401) { toast('Сессия истекла'); clearToken(); setTimeout(render, 500); return null; }
             if (res.status === 403) { toast('Нет доступа'); return null; }
+
             const data = await res.json().catch(() => null);
-            if (!res.ok) { toast(data?.error || 'Ошибка'); return null; }
+
+            if (!res.ok) {
+                // Пытаемся достать текст ошибки из Result.Failure
+                toast(data?.error || data?.errorMessage || 'Ошибка запроса');
+                return null;
+            }
+
+            // --- ИСПРАВЛЕННЫЙ БЛОК: РАСПАКОВКА Result<T> ---
+            // Если бэкенд прислал класс Result (есть поле isSuccess)
+            if (data && typeof data.isSuccess !== 'undefined') {
+                if (!data.isSuccess) {
+                    toast(data.error || 'Произошла ошибка на сервере');
+                    return null;
+                }
+                // Смотрим, как именно сериализуется T у вас: .value, .data или напрямую
+                if (data.value !== undefined) return data.value;
+                if (data.data !== undefined) return data.data;
+            }
+            // -----------------------------------------------
+
             return data ?? true;
-        } catch (e) { console.error(e); toast('Сеть недоступна'); return null; }
+        } catch (e) {
+            console.error(e);
+            toast('Сеть недоступна');
+            return null;
+        }
     }
 
     function openModal(id)  { document.getElementById(id).classList.add('open'); }
@@ -529,12 +553,19 @@
         const res = await api('/Auth/login', 'POST', { email, password });
         if (res?.token) {
             saveToken(res.token);
-            const role = myRole();
-            if (role !== 'Admin' && role !== 'SuperAdmin') {
+
+            // --- ИСПРАВЛЕННЫЙ БЛОК ---
+            const rawRole = myRole();
+            const roles = Array.isArray(rawRole) ? rawRole : [rawRole]; // Если ролей несколько, это массив
+
+            // Добавили проверку на BuildingAdmin
+            if (!roles.includes('Admin') && !roles.includes('SuperAdmin') && !roles.includes('BuildingAdmin')) {
                 toast('Этот аккаунт не админ');
                 clearToken();
                 return;
             }
+            // -------------------------
+
             await render();
         }
     }
@@ -993,8 +1024,14 @@
 
     async function render() {
         const authed = !!token();
-        const role = myRole();
-        const isAdmin = authed && (role === 'Admin' || role === 'SuperAdmin');
+
+        // 1. Достаем роли и делаем из них массив, как в doLogin
+        const rawRole = myRole();
+        const roles = Array.isArray(rawRole) ? rawRole : [rawRole];
+
+        // 2. ДОБАВЛЯЕМ BuildingAdmin В ПРОВЕРКУ
+        const isAdmin = authed && (roles.includes('Admin') || roles.includes('SuperAdmin') || roles.includes('BuildingAdmin'));
+
         const needsPwChange = authed && mustChangePassword();
 
         document.getElementById('auth-block').style.display       = authed ? 'none' : 'block';
@@ -1007,10 +1044,11 @@
             document.getElementById('user-info').innerHTML = `<a class="logout" onclick="doLogout()">отмена</a>`;
             return;
         }
+
         if (!isAdmin) {
             document.getElementById('auth-block').style.display = 'block';
             document.getElementById('auth-block').innerHTML =
-                '<h3 style="margin-top:0;">Доступ закрыт</h3><p>Этот аккаунт не админ. <a href="#" onclick="doLogout();return false;">Выйти</a></p>';
+                '<h3 style="margin-top:0;">Доступ закрыт</h3><p>Этот аккаунт не админ. <a class="logout" style="margin:0;" onclick="doLogout();return false;">Выйти</a></p>';
             return;
         }
 
