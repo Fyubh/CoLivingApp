@@ -43,6 +43,7 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
     // === Staff & Maintenance layer ===
     public DbSet<StaffAssignment> StaffAssignments => Set<StaffAssignment>();
     public DbSet<MaintenanceRequest> MaintenanceRequests => Set<MaintenanceRequest>();
+    public DbSet<ResidentNotification> ResidentNotifications => Set<ResidentNotification>();
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

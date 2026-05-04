@@ -30,6 +30,7 @@ public interface IApplicationDbContext
     // === Staff & Maintenance layer (новое) ===
     DbSet<StaffAssignment> StaffAssignments { get; }
     DbSet<MaintenanceRequest> MaintenanceRequests { get; }
+    DbSet<ResidentNotification> ResidentNotifications { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }

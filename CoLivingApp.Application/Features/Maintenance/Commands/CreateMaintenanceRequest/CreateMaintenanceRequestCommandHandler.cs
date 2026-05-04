@@ -76,10 +76,18 @@ public class CreateMaintenanceRequestCommandHandler
             return Result<Guid>.Failure("Не указано место заявки (room/apartment/building).");
         }
 
-        // 3. Авторизация: жилец должен быть членом квартиры, по которой подаёт заявку.
-        //    Для заявок по общей зоне здания (без ApartmentId) — пропускаем, т.к. жилец просто
-        //    в этом здании живёт (позже заменим на StaffAssignment/Tenancy-based check).
-        if (resolvedApartmentId.HasValue)
+        // 3. Авторизация: location должен принадлежать текущему жильцу.
+        if (resolvedRoomId.HasValue)
+        {
+            var isRoomResident = await _context.ApartmentMembers
+                .AnyAsync(m => m.RoomId == resolvedRoomId.Value
+                               && m.UserId == request.ReportedByUserId
+                               && m.IsActive, ct);
+
+            if (!isRoomResident)
+                return Result<Guid>.Failure("Вы не являетесь жильцом этой комнаты.");
+        }
+        else if (resolvedApartmentId.HasValue)
         {
             var isMember = await _context.ApartmentMembers
                 .AnyAsync(m => m.ApartmentId == resolvedApartmentId.Value
@@ -88,6 +96,16 @@ public class CreateMaintenanceRequestCommandHandler
 
             if (!isMember)
                 return Result<Guid>.Failure("Вы не являетесь жильцом этой квартиры.");
+        }
+        else
+        {
+            var livesInBuilding = await _context.ApartmentMembers
+                .AnyAsync(m => m.UserId == request.ReportedByUserId
+                               && m.IsActive
+                               && m.Apartment!.BuildingId == resolvedBuildingId, ct);
+
+            if (!livesInBuilding)
+                return Result<Guid>.Failure("Вы не являетесь жильцом этого здания.");
         }
 
         // 4. Создаём заявку

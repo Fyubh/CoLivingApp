@@ -5,6 +5,7 @@ using CoLivingApp.Application.Features.Onboarding.Commands.CreateTenant;
 using CoLivingApp.Application.Features.Onboarding.Queries.GetAvailableRooms;
 using CoLivingApp.Application.Features.Onboarding.Queries.GetBuildingApartments;
 using CoLivingApp.Application.Features.Onboarding.Queries.GetBuildingFloors;
+using CoLivingApp.Application.Features.Onboarding.Queries.GetBuildingResidents;
 using CoLivingApp.Application.Features.Onboarding.Queries.GetBuildingStaff;
 using CoLivingApp.Application.Features.Onboarding.Queries.GetMyBuildings;
 using CoLivingApp.Application.Features.Onboarding.Commands.CreateBuilding;
@@ -95,6 +96,14 @@ public class OnboardingController : ControllerBase
     {
         var adminId = CurrentUserId(); if (string.IsNullOrEmpty(adminId)) return Unauthorized();
         var result = await _mediator.Send(new GetBuildingStaffQuery(adminId, buildingId));
+        return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
+    }
+
+    [HttpGet("buildings/{buildingId:guid}/residents")]
+    public async Task<IActionResult> GetResidents(Guid buildingId)
+    {
+        var adminId = CurrentUserId(); if (string.IsNullOrEmpty(adminId)) return Unauthorized();
+        var result = await _mediator.Send(new GetBuildingResidentsQuery(adminId, buildingId));
         return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
     }
 

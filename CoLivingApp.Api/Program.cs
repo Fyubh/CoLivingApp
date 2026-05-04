@@ -5,17 +5,30 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using CoLivingApp.Infrastructure.BackgroundJobs;
+using Microsoft.AspNetCore.Http.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// --- 1. ДОБАВЛЯЕМ СЕРВИС CORS ---
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll", policy =>
+    options.AddPolicy("AppCors", policy =>
     {
-        policy.AllowAnyOrigin()  // Разрешает запросы с любых портов и доменов
-            .AllowAnyMethod()  // Разрешает GET, POST, PUT, DELETE
-            .AllowAnyHeader(); // Разрешает любые заголовки (очень важно для передачи токена Authorization!)
+        var configuredOrigins = builder.Configuration
+            .GetSection("AllowedCorsOrigins")
+            .Get<string[]>();
+
+        var origins = configuredOrigins is { Length: > 0 }
+            ? configuredOrigins
+            : new[]
+            {
+                "http://localhost:5173",
+                "http://127.0.0.1:5173"
+            };
+
+        policy.WithOrigins(origins)
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
     });
 });
 
@@ -24,6 +37,9 @@ builder.Services.AddCors(options =>
 // ==========================================
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+if (string.IsNullOrWhiteSpace(connectionString))
+    throw new InvalidOperationException("ConnectionStrings:DefaultConnection is not configured.");
+
 builder.Services.AddSignalR();
 builder.Services.AddHostedService<SchedulerBackgroundService>();
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -33,21 +49,11 @@ builder.Services.AddScoped<IApplicationDbContext>(provider =>
 builder.Services.AddMediatR(cfg => 
     cfg.RegisterServicesFromAssembly(typeof(CoLivingApp.Application.Features.Apartments.Commands.CreateApartment.CreateApartmentCommand).Assembly));
 
-// ДОБАВЛЯЕМ CORS (Разрешаем React-приложению делать запросы)
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowAdminPanel", policy =>
-    {
-        // Укажи здесь порт твоего Vite-приложения (обычно 5173)
-        policy.WithOrigins("http://localhost:5173") 
-            .AllowAnyHeader()
-            .AllowAnyMethod()
-            .AllowCredentials(); // Важно для SignalR в будущем
-    });
-});
-
 // НАСТРОЙКА JWT АВТОРИЗАЦИИ
 var jwtSecret = builder.Configuration["JwtSettings:Secret"];
+if (string.IsNullOrWhiteSpace(jwtSecret) || jwtSecret.Length < 32)
+    throw new InvalidOperationException("JwtSettings:Secret must be configured and at least 32 characters long.");
+
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -90,20 +96,42 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseCors("AllowAdminPanel");
-
-// ВНИМАНИЕ: app.UseHttpsRedirection() УДАЛЕН, чтобы не ломать локальные запросы по HTTP!
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
 // 3. CORS (Разрешаем кросс-доменные запросы)
-app.UseCors("AllowAll");
+app.UseCors("AppCors");
 
 // 4. Аутентификация и Авторизация (СТРОГО в таком порядке)
 app.UseAuthentication();
+app.Use(async (context, next) =>
+{
+    var user = context.User;
+    var mustChangePassword = user.Identity?.IsAuthenticated == true
+                             && user.HasClaim("mustChangePassword", "true");
+
+    if (mustChangePassword
+        && context.Request.Path.StartsWithSegments("/api")
+        && !context.Request.Path.StartsWithSegments("/api/Users/change-password"))
+    {
+        context.Response.StatusCode = StatusCodes.Status403Forbidden;
+        await context.Response.WriteAsJsonAsync(new
+        {
+            error = "Перед продолжением необходимо сменить временный пароль."
+        });
+        return;
+    }
+
+    await next();
+});
 app.UseAuthorization();
 
 // 5. Маппинг контроллеров и сокетов
 app.MapControllers();
-app.MapHub<CoLivingApp.Api.Hubs.CoLivingHub>("/hubs/coliving");
+app.MapHub<CoLivingApp.Api.Hubs.CoLivingHub>("/hubs/coliving")
+    .RequireAuthorization();
 
 using (var scope = app.Services.CreateScope())
 {

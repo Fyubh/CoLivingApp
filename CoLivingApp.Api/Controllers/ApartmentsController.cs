@@ -52,7 +52,10 @@ public class ApartmentsController : ControllerBase
     [HttpGet("{id}")]
     public async Task<IActionResult> Get(Guid id)
     {
-        var result = await _mediator.Send(new GetApartmentQuery(id));
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+        var result = await _mediator.Send(new GetApartmentQuery(id, userId));
         return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
     }
     

@@ -30,7 +30,7 @@ public class GetMyApartmentContextQueryHandler
         var membership = await _context.ApartmentMembers
             .Where(m => m.UserId == request.UserId && m.IsActive)
             .OrderByDescending(m => m.JoinedAt)
-            .Select(m => new { m.ApartmentId })
+            .Select(m => new { m.ApartmentId, m.RoomId })
             .FirstOrDefaultAsync(ct);
 
         if (membership == null)
@@ -47,6 +47,7 @@ public class GetMyApartmentContextQueryHandler
                 a.BuildingId,
                 BuildingName = a.Building != null ? a.Building.Name : null,
                 Rooms = a.Rooms
+                    .Where(r => membership.RoomId == null || r.Id == membership.RoomId)
                     .OrderBy(r => r.Number)
                     .Select(r => new RoomOptionDto(
                         r.Id,

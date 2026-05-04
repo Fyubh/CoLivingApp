@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CoLivingApp.Application.Features.Apartments.Queries.GetApartment;
 
-public record GetApartmentQuery(Guid ApartmentId) : IRequest<Result<ApartmentDto>>;
+public record GetApartmentQuery(Guid ApartmentId, string RequestingUserId) : IRequest<Result<ApartmentDto>>;
 
 public record ApartmentDto(Guid Id, string Name, string InviteCode, List<MemberDto> Members);
 public record MemberDto(string UserId, string Name);
@@ -17,6 +17,14 @@ public class GetApartmentQueryHandler : IRequestHandler<GetApartmentQuery, Resul
 
     public async Task<Result<ApartmentDto>> Handle(GetApartmentQuery request, CancellationToken cancellationToken)
     {
+        var isMember = await _context.ApartmentMembers.AnyAsync(m =>
+            m.ApartmentId == request.ApartmentId
+            && m.UserId == request.RequestingUserId
+            && m.IsActive, cancellationToken);
+
+        if (!isMember)
+            return Result<ApartmentDto>.Failure("Нет доступа к этой квартире.");
+
         var apartment = await _context.Apartments
             .Include(a => a.Members.Where(m => m.IsActive))
             .ThenInclude(m => m.User)

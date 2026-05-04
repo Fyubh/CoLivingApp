@@ -1,3 +1,8 @@
+using System.Security.Claims;
+using CoLivingApp.Infrastructure.Persistence;
+using CoLivingApp.Domain.Enums;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.SignalR;
 
 namespace CoLivingApp.Api.Hubs;
@@ -15,12 +20,27 @@ namespace CoLivingApp.Api.Hubs;
 /// - User: "user_{userId}".
 /// - Building admin: "building_admin_{buildingId}".
 /// </summary>
+[Authorize]
 public class CoLivingHub : Hub
 {
+    private readonly ApplicationDbContext _db;
+
+    public CoLivingHub(ApplicationDbContext db) => _db = db;
+
     /// <summary>Подписка на обновления квартиры — roommate-слой.</summary>
     public async Task JoinApartmentGroup(string apartmentId)
     {
-        await Groups.AddToGroupAsync(Context.ConnectionId, apartmentId);
+        var userId = CurrentUserId();
+        if (userId == null || !Guid.TryParse(apartmentId, out var apartmentGuid))
+            throw new HubException("Unauthorized group subscription.");
+
+        var isMember = await _db.ApartmentMembers.AnyAsync(m =>
+            m.UserId == userId && m.ApartmentId == apartmentGuid && m.IsActive);
+
+        if (!isMember)
+            throw new HubException("Unauthorized group subscription.");
+
+        await Groups.AddToGroupAsync(Context.ConnectionId, apartmentGuid.ToString());
     }
 
     /// <summary>
@@ -28,6 +48,9 @@ public class CoLivingHub : Hub
     /// </summary>
     public async Task JoinUserGroup(string userId)
     {
+        if (CurrentUserId() != userId)
+            throw new HubException("Unauthorized group subscription.");
+
         await Groups.AddToGroupAsync(Context.ConnectionId, $"user_{userId}");
     }
 
@@ -37,6 +60,21 @@ public class CoLivingHub : Hub
     /// </summary>
     public async Task JoinBuildingAdminGroup(string buildingId)
     {
-        await Groups.AddToGroupAsync(Context.ConnectionId, $"building_admin_{buildingId}");
+        var userId = CurrentUserId();
+        if (userId == null || !Guid.TryParse(buildingId, out var buildingGuid))
+            throw new HubException("Unauthorized group subscription.");
+
+        var isAdmin = await _db.StaffAssignments.AnyAsync(s =>
+            s.UserId == userId
+            && s.BuildingId == buildingGuid
+            && s.Role == StaffRole.BuildingAdmin
+            && s.IsActive);
+
+        if (!isAdmin)
+            throw new HubException("Unauthorized group subscription.");
+
+        await Groups.AddToGroupAsync(Context.ConnectionId, $"building_admin_{buildingGuid}");
     }
+
+    private string? CurrentUserId() => Context.User?.FindFirstValue(ClaimTypes.NameIdentifier);
 }
