@@ -63,9 +63,13 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(jwtSecret!)),
             ValidateIssuer = false,
             ValidateAudience = false,
-            ValidateLifetime = true,
-            
-            RoleClaimType = "role"
+            ValidateLifetime = true
+            // RoleClaimType намеренно НЕ переопределяем. JwtBearer по умолчанию
+            // включает inbound claim mapping: короткий "role" из JWT превращается
+            // в ClaimTypes.Role в ClaimsPrincipal. Дефолтный RoleClaimType ==
+            // ClaimTypes.Role — то есть всё совпадает. Если зафорсить
+            // RoleClaimType="role", [Authorize(Roles=...)] начинает искать
+            // claim с типом "role", а в principal он лежит под URI — итог 403.
         };
     });
 
