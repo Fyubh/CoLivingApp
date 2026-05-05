@@ -7,7 +7,8 @@ namespace CoLivingApp.Application.Features.Apartments.Queries.GetMyApartmentCont
 
 /// <summary>
 /// Вернуть контекст проживания юзера — достаточно информации, чтобы форма заявки на ремонт
-/// могла показать корректные поля без дополнительных запросов.
+/// могла показать корректные поля без дополнительных запросов, и Профиль / вкладка «Соседи»
+/// тоже подгружались одним вызовом.
 /// Если жилец в нескольких квартирах (редкий кейс в roommate-mode), берём последнюю активную —
 /// для B2B это всегда одна.
 /// </summary>
@@ -60,13 +61,31 @@ public class GetMyApartmentContextQueryHandler
         if (data == null)
             return Result<MyApartmentContextDto?>.Failure("Квартира не найдена.");
 
+        // Активные соседи (включая самого пользователя) — для Профиля и вкладки «Соседи».
+        // Сортируем: сначала me, потом остальные по дате заселения (старшие сверху).
+        var roommates = await _context.ApartmentMembers
+            .Where(m => m.ApartmentId == membership.ApartmentId && m.IsActive)
+            .OrderBy(m => m.JoinedAt)
+            .Select(m => new RoommateDto(
+                m.UserId,
+                m.User != null ? m.User.Name : string.Empty,
+                m.Room != null ? m.Room.Number : null,
+                m.JoinedAt,
+                m.UserId == request.UserId))
+            .ToListAsync(ct);
+
+        var meName = roommates.FirstOrDefault(r => r.IsMe)?.Name ?? string.Empty;
+
         var dto = new MyApartmentContextDto(
             data.Id,
             data.Name,
             data.UnitNumber,
             data.BuildingId,
             data.BuildingName,
-            data.Rooms);
+            data.Rooms,
+            request.UserId,
+            meName,
+            roommates);
 
         return Result<MyApartmentContextDto?>.Success(dto);
     }

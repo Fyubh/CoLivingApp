@@ -13,7 +13,8 @@ namespace CoLivingApp.Infrastructure.Seeders;
 /// После обновления: добавлено создание 3 staff-users и привязка через StaffAssignment.
 /// Это нужно, чтобы в Maintenance-сценарии было кому назначать заявки.
 /// </summary>
-public static class TheFizzPragueSeeder
+public static class 
+    TheFizzPragueSeeder
 {
     private const string OperatorSlug = "the-fizz";
     private const string BuildingName = "The Fizz Prague";
