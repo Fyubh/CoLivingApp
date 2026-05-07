@@ -1,0 +1,22 @@
+# Xcode user-local state
+xcuserdata/
+*.xcuserstate
+*.xcuserdatad/
+
+# Build output
+build/
+DerivedData/
+*.moved-aside
+
+# Swift Package Manager
+.build/
+.swiftpm/
+Packages/
+Package.resolved
+
+# macOS
+.DS_Store
+
+# Personal user-overlay schemes
+*.xcscmblueprint
+*.xccheckout
