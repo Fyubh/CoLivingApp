@@ -14,7 +14,7 @@ actor APIClient {
     private let decoder: JSONDecoder
     private let encoder: JSONEncoder
 
-    init(baseURL: URL = URL(string: "http://localhost:5130/api")!) {
+    init(baseURL: URL = URL(string: "http://localhost:5130/api/")!) {
         self.baseURL = baseURL
         self.session = .shared
         self.decoder = JSONDecoder()
@@ -25,7 +25,7 @@ actor APIClient {
 
     func login(email: String, password: String) async throws -> AuthTokenResponse {
         let body = LoginRequest(email: email, password: password)
-        return try await post(path: "/Auth/login", body: body, token: nil)
+        return try await post(path: "Auth/login", body: body, token: nil)
     }
 
     func changePassword(
@@ -34,7 +34,7 @@ actor APIClient {
         token: String
     ) async throws -> AuthTokenResponse {
         let body = ChangePasswordRequest(oldPassword: oldPassword, newPassword: newPassword)
-        return try await post(path: "/Users/change-password", body: body, token: token)
+        return try await post(path: "Users/change-password", body: body, token: token)
     }
 
     // MARK: - Generic
