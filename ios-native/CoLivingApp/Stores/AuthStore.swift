@@ -35,6 +35,29 @@ final class AuthStore {
         }
     }
 
+    /// Bearer token for authed calls, or nil if we're not in `.signedIn`.
+    /// `.requiresPasswordChange` is intentionally excluded: those calls go
+    /// through `changePassword(...)` which handles its own token.
+    var currentToken: String? {
+        if case .signedIn(let t) = state { return t }
+        return nil
+    }
+
+    /// Single funnel for authed network calls. Hands the current token to the
+    /// caller and, on 401, clears auth state so AuthFlow rebuilds back to
+    /// Login. Re-throws so the caller can still display a "session expired"
+    /// state if it wants to. If there's no token at all (already signed out),
+    /// throws `.unauthorized` without invoking the block.
+    func authedCall<T>(_ block: (String) async throws -> T) async throws -> T {
+        guard let token = currentToken else { throw APIError.unauthorized }
+        do {
+            return try await block(token)
+        } catch APIError.unauthorized {
+            signOut()
+            throw APIError.unauthorized
+        }
+    }
+
     func signIn(email: String, password: String) async {
         isLoading = true
         error = nil

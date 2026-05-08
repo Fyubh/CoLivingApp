@@ -1,11 +1,10 @@
 import Foundation
 
 /// Thin actor over `URLSession`. Endpoints are hand-rolled — no codegen, no
-/// SPM client. The generic `post` keeps boilerplate at the call site to
-/// `path` + body + token.
-///
-/// Backend is ASP.NET Core 9 with default camelCase JSON, so Swift `Codable`
-/// PascalCase doesn't apply — properties match camelCase as written.
+/// SPM client. Generic `get` / `post` build the request; `send` runs it and
+/// maps status / envelope into `APIError`. Backend is ASP.NET Core 9 with
+/// default camelCase JSON, `JsonStringEnumConverter` registered, ISO 8601
+/// dates (with or without fractional seconds depending on column precision).
 actor APIClient {
     static let shared = APIClient()
 
@@ -17,7 +16,25 @@ actor APIClient {
     init(baseURL: URL = URL(string: "http://localhost:5130/api/")!) {
         self.baseURL = baseURL
         self.session = .shared
-        self.decoder = JSONDecoder()
+
+        let dec = JSONDecoder()
+        // Backend sometimes returns `2026-05-08T14:51:56.123Z`, sometimes
+        // `2026-05-08T14:51:56Z` — try both and fail loudly otherwise. A new
+        // formatter per decode is fine: the cost is microseconds and there's
+        // no shared mutable state to worry about.
+        dec.dateDecodingStrategy = .custom { decoder in
+            let str = try decoder.singleValueContainer().decode(String.self)
+            let f = ISO8601DateFormatter()
+            f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            if let d = f.date(from: str) { return d }
+            f.formatOptions = [.withInternetDateTime]
+            if let d = f.date(from: str) { return d }
+            throw DecodingError.dataCorrupted(
+                .init(codingPath: decoder.codingPath,
+                      debugDescription: "Invalid ISO 8601 date: \(str)")
+            )
+        }
+        self.decoder = dec
         self.encoder = JSONEncoder()
     }
 
@@ -37,7 +54,50 @@ actor APIClient {
         return try await post(path: "Users/change-password", body: body, token: token)
     }
 
+    // MARK: - Home endpoints
+
+    func getMyApartmentContext(token: String) async throws -> MyApartmentContextDto {
+        return try await get(path: "Apartments/my-context", token: token)
+    }
+
+    func getMyNotifications(token: String) async throws -> [ResidentNotificationDto] {
+        return try await get(path: "Notifications/my", token: token)
+    }
+
+    func markNotificationRead(id: UUID, token: String) async throws {
+        let _: MarkReadResponse = try await post(
+            path: "Notifications/\(id.uuidString)/read",
+            body: EmptyBody(),
+            token: token
+        )
+    }
+
     // MARK: - Generic
+
+    private func get<Resp: Decodable>(
+        path: String,
+        token: String?,
+        query: [URLQueryItem] = []
+    ) async throws -> Resp {
+        guard
+            let initial = URL(string: path, relativeTo: baseURL),
+            var components = URLComponents(url: initial, resolvingAgainstBaseURL: true)
+        else {
+            throw APIError.invalidURL
+        }
+        if !query.isEmpty {
+            components.queryItems = query
+        }
+        guard let url = components.url else { throw APIError.invalidURL }
+
+        var req = URLRequest(url: url)
+        req.httpMethod = "GET"
+        req.setValue("application/json", forHTTPHeaderField: "Accept")
+        if let token {
+            req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        return try await send(req)
+    }
 
     private func post<Body: Encodable, Resp: Decodable>(
         path: String,
@@ -55,7 +115,10 @@ actor APIClient {
             req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
         req.httpBody = try encoder.encode(body)
+        return try await send(req)
+    }
 
+    private func send<Resp: Decodable>(_ req: URLRequest) async throws -> Resp {
         let data: Data
         let response: URLResponse
         do {
@@ -76,7 +139,6 @@ actor APIClient {
             }
         }
 
-        // Backend convention: non-2xx with `{ "error": "..." }` envelope.
         if let envelope = try? decoder.decode(ErrorEnvelope.self, from: data) {
             throw APIError.server(message: envelope.error)
         }
@@ -87,11 +149,15 @@ actor APIClient {
     }
 }
 
-// MARK: - DTOs
+// MARK: - DTOs (auth + plumbing)
 
 nonisolated struct AuthTokenResponse: Decodable {
     let token: String
     let mustChangePassword: Bool
+}
+
+nonisolated struct MarkReadResponse: Decodable {
+    let notificationId: UUID
 }
 
 nonisolated private struct LoginRequest: Encodable {
@@ -103,6 +169,8 @@ nonisolated private struct ChangePasswordRequest: Encodable {
     let oldPassword: String
     let newPassword: String
 }
+
+nonisolated private struct EmptyBody: Encodable {}
 
 nonisolated private struct ErrorEnvelope: Decodable {
     let error: String

@@ -28,7 +28,7 @@ struct AuthFlow: View {
                 )
 
             case .signedIn:
-                RootTabView(onSignOut: { auth.signOut() })
+                RootTabView(auth: auth, onSignOut: { auth.signOut() })
             }
         }
         .animation(.easeInOut(duration: 0.32), value: auth.state)

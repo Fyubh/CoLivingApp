@@ -2,14 +2,16 @@ import SwiftUI
 
 /// Root of the signed-in state. Five tabs, each owning its own
 /// `NavigationStack` so push/pop and scroll position are tab-local.
-/// Sign-out lives only on Profile and is threaded down from `AuthFlow`.
-/// Phase 2 wires the structure; tab content is filled phase by phase.
+/// Sign-out lives only on Profile and is threaded down from `AuthFlow`;
+/// `auth` is forwarded to tabs that need authed network access (Home for
+/// Phase 3, more later).
 struct RootTabView: View {
+    let auth: AuthStore
     var onSignOut: () -> Void
 
     var body: some View {
         TabView {
-            HomeView()
+            HomeView(auth: auth)
                 .tabItem { Label("Главная", systemImage: "house") }
 
             ServicesView()
@@ -30,5 +32,5 @@ struct RootTabView: View {
 }
 
 #Preview {
-    RootTabView(onSignOut: {})
+    RootTabView(auth: AuthStore(), onSignOut: {})
 }

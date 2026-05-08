@@ -2,9 +2,12 @@ import SwiftUI
 
 /// Hero panel — a residential keycard. Kicker microlabel sits on top, the
 /// apartment number reads in serif at hero scale, a Conifer key glyph anchors
-/// the right edge, and a Clay status dot in the footer signals availability.
+/// the right edge, and a footer status pairs a small dot with a label.
 /// No chevron, no gradient: a refractive Linen mesh sits behind the glass so
 /// the panel picks up warm tint instead of broadcasting brand color.
+///
+/// Phase 3 footer reads `Скоро` (neutral dot) until the external Keys app
+/// ships — flip to `Доступно` + Clay dot once that deep link is real.
 struct DoorCard: View {
     private let roomLabel: String
     private let action: () -> Void
@@ -52,9 +55,9 @@ struct DoorCard: View {
 
                 HStack(spacing: 8) {
                     Circle()
-                        .fill(AppColor.clay)
+                        .fill(AppColor.inkTertiary)
                         .frame(width: 6, height: 6)
-                    Text("Доступно")
+                    Text("Скоро")
                         .font(.footnote.weight(.medium))
                         .foregroundStyle(AppColor.inkSecondary)
                 }
