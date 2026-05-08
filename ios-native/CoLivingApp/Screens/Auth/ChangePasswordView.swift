@@ -4,15 +4,17 @@ import SwiftUI
 /// with `{ oldPassword, newPassword }` — min 8 chars new, must differ from old.
 /// Confirm-field is client-side only (typo-prevention).
 ///
-/// Phase 1 — visual scaffold. The submit handler shapes a fake error so the
-/// validation/error treatment can be reviewed on device. API wiring lands
-/// in the next pass and replaces `attemptSave`.
+/// External state (`error`, `isLoading`) is driven by the parent (typically
+/// `AuthFlow` reading from `AuthStore`); local `@State` holds the three
+/// password fields since the parent never needs them after submit.
 struct ChangePasswordView: View {
+    var error: String?
+    var isLoading: Bool
+    var onSubmit: (_ oldPassword: String, _ newPassword: String) -> Void
+
     @State private var oldPassword: String = ""
     @State private var newPassword: String = ""
     @State private var confirmPassword: String = ""
-    @State private var error: String? = nil
-    @State private var isLoading: Bool = false
 
     @FocusState private var focusedField: Field?
     private enum Field { case old, new, confirm }
@@ -184,18 +186,19 @@ struct ChangePasswordView: View {
 
     private func attemptSave() {
         focusedField = nil
-        error = nil
-
         guard canSubmit else { return }
-
-        isLoading = true
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) {
-            isLoading = false
-            error = "Проводка ещё не подключена — подключим следующим шагом."
-        }
+        onSubmit(oldPassword, newPassword)
     }
 }
 
-#Preview {
-    ChangePasswordView()
+#Preview("ChangePassword") {
+    ChangePasswordView(error: nil, isLoading: false, onSubmit: { _, _ in })
+}
+
+#Preview("ChangePassword — ошибка") {
+    ChangePasswordView(
+        error: "Неверный текущий пароль.",
+        isLoading: false,
+        onSubmit: { _, _ in }
+    )
 }

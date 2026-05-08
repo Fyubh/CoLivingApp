@@ -1,14 +1,15 @@
 import SwiftUI
 
-/// Phase 1 — visual scaffold only. The submit handler shapes a fake error
-/// state so we can review the validation/error treatment on device. API
-/// wiring (APIClient + AuthStore + Keychain) lands in the next pass and
-/// will replace `attemptSignIn`.
+/// External state (`error`, `isLoading`) is driven by the parent (typically
+/// `AuthFlow` reading from `AuthStore`); the form keeps email/password in
+/// local `@State` since the parent never needs them after submit.
 struct LoginView: View {
+    var error: String?
+    var isLoading: Bool
+    var onSubmit: (_ email: String, _ password: String) -> Void
+
     @State private var email: String = ""
     @State private var password: String = ""
-    @State private var error: String? = nil
-    @State private var isLoading: Bool = false
 
     @FocusState private var focusedField: Field?
     private enum Field { case email, password }
@@ -134,19 +135,23 @@ struct LoginView: View {
 
     private func attemptSignIn() {
         focusedField = nil
-        error = nil
-
         guard !email.isEmpty, !password.isEmpty else { return }
-
-        isLoading = true
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) {
-            isLoading = false
-            // Visual-only stand-in until APIClient lands.
-            error = "Проводка ещё не подключена — подключим следующим шагом."
-        }
+        onSubmit(email, password)
     }
 }
 
-#Preview {
-    LoginView()
+#Preview("Login") {
+    LoginView(error: nil, isLoading: false, onSubmit: { _, _ in })
+}
+
+#Preview("Login — ошибка") {
+    LoginView(
+        error: "Неверный e-mail или пароль.",
+        isLoading: false,
+        onSubmit: { _, _ in }
+    )
+}
+
+#Preview("Login — загрузка") {
+    LoginView(error: nil, isLoading: true, onSubmit: { _, _ in })
 }

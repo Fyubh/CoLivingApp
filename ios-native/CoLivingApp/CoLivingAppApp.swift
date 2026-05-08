@@ -11,7 +11,7 @@ import SwiftUI
 struct CoLivingAppApp: App {
     var body: some Scene {
         WindowGroup {
-            LoginView()
+            AuthFlow()
         }
     }
 }
