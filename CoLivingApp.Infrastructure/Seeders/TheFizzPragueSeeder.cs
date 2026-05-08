@@ -28,6 +28,15 @@ public static class
     private const string SuperAdminPassword = "owner123!";
     private const string SuperAdminName = "Platform Owner";
 
+    // Демо-жилец для iOS-клиента: создаётся с MustChangePassword=true,
+    // чтобы можно было проверить весь онбординг (Login → ChangePassword → Home).
+    // Привязывается к конкретной студии в The Fizz Prague — solo-режим,
+    // соседей нет. Для проверки shared-режима понадобится отдельный seed.
+    private const string ResidentEmail = "ivan.resident@fizz.test";
+    private const string ResidentName = "Ivan Petrov";
+    private const string ResidentPassword = "fizz123!";
+    private const string ResidentApartmentUnit = "0102";
+
     public static async Task SeedAsync(IServiceProvider serviceProvider, CancellationToken ct = default)
     {
         using var scope = serviceProvider.CreateScope();
@@ -45,6 +54,7 @@ public static class
             // Проверим отдельно, есть ли staff-users — если нет, досеем (на случай старой базы,
             // засеянной предыдущей версией сидера).
             await EnsureStaffSeeded(db, logger, ct);
+            await EnsureResidentSeeded(db, logger, ct);
             return;
         }
 
@@ -98,6 +108,8 @@ public static class
         await db.SaveChangesAsync(ct);
         logger.LogInformation("TheFizzPragueSeeder: full seed done ({Apartments} apartments, 3 staff).",
             floors.Length * 5);
+
+        await EnsureResidentSeeded(db, logger, ct);
     }
 
     /// <summary>
@@ -159,6 +171,81 @@ public static class
         logger.LogInformation("TheFizzPragueSeeder: back-filling staff for existing building…");
         SeedStaff(db, building.Id);
         await db.SaveChangesAsync(ct);
+    }
+
+    /// <summary>
+    /// Гарантирует, что в The Fizz Prague живёт демо-жилец, через которого
+    /// можно прогнать весь онбординг iOS-клиента (Login → ChangePassword → Home).
+    /// Создаёт User(Tenant) с MustChangePassword=true (если ещё нет) и привязывает
+    /// его через ApartmentMember к Studio 0102. Solo-режим — соседей нет.
+    /// </summary>
+    private static async Task EnsureResidentSeeded(ApplicationDbContext db, ILogger logger, CancellationToken ct)
+    {
+        var building = await db.Buildings
+            .FirstOrDefaultAsync(b => b.Name == BuildingName, ct);
+        if (building == null) return;
+
+        var emailLower = ResidentEmail.ToLowerInvariant();
+        var user = await db.Users
+            .FirstOrDefaultAsync(u => u.Email.ToLower() == emailLower, ct);
+
+        var createdUser = user == null;
+        if (user == null)
+        {
+            user = new User
+            {
+                Email = emailLower,
+                Name = ResidentName,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(ResidentPassword),
+                Role = UserRole.Tenant,
+                AccessLevel = 1,
+                KarmaScore = 100,
+                MustChangePassword = true
+            };
+            db.Users.Add(user);
+        }
+
+        var hasMembership = await db.ApartmentMembers
+            .AnyAsync(m => m.UserId == user.Id && m.IsActive, ct);
+
+        if (!hasMembership)
+        {
+            var apartment = await db.Apartments
+                .Where(a => a.BuildingId == building.Id && a.UnitNumber == ResidentApartmentUnit)
+                .Include(a => a.Rooms)
+                .FirstOrDefaultAsync(ct);
+
+            if (apartment != null)
+            {
+                var room = apartment.Rooms.OrderBy(r => r.Number).FirstOrDefault();
+                db.ApartmentMembers.Add(new ApartmentMember
+                {
+                    UserId = user.Id,
+                    ApartmentId = apartment.Id,
+                    RoomId = room?.Id,
+                    IsActive = true,
+                    JoinedAt = DateTime.UtcNow
+                });
+            }
+            else
+            {
+                logger.LogWarning(
+                    "TheFizzPragueSeeder: target apartment {Unit} not found, skipping resident membership.",
+                    ResidentApartmentUnit);
+            }
+        }
+
+        if (createdUser || !hasMembership)
+        {
+            await db.SaveChangesAsync(ct);
+        }
+
+        if (createdUser)
+        {
+            logger.LogInformation(
+                "TheFizzPragueSeeder: created Tenant {Email} (password={Password}, must change on first login).",
+                ResidentEmail, ResidentPassword);
+        }
     }
 
     private static void SeedApartmentsForFloor(ApplicationDbContext db, Floor floor, Guid buildingId)
