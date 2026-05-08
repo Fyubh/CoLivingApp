@@ -13,11 +13,14 @@ final class HomeStore {
     private(set) var apartment: MyApartmentContextDto?
     private(set) var notifications: [ResidentNotificationDto] = []
     private(set) var isLoading: Bool = false
+    /// Flips to `true` after the first successful refresh, regardless of
+    /// whether `apartment` came back non-nil. Lets HomeView distinguish
+    /// "still loading" from "loaded and the user has no apartment".
+    private(set) var hasLoaded = false
     var errorMessage: String?
 
     private let api: APIClient
     private let auth: AuthStore
-    private var hasLoaded = false
 
     init(api: APIClient = .shared, auth: AuthStore) {
         self.api = api
@@ -37,7 +40,7 @@ final class HomeStore {
         defer { isLoading = false }
 
         do {
-            async let apt: MyApartmentContextDto = auth.authedCall { token in
+            async let apt: MyApartmentContextDto? = auth.authedCall { token in
                 try await self.api.getMyApartmentContext(token: token)
             }
             async let notif: [ResidentNotificationDto] = auth.authedCall { token in

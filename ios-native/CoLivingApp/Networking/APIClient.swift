@@ -56,7 +56,10 @@ actor APIClient {
 
     // MARK: - Home endpoints
 
-    func getMyApartmentContext(token: String) async throws -> MyApartmentContextDto {
+    /// Returns `nil` when the user has no active apartment membership — the
+    /// backend serializes a missing membership as `200 OK` with body `null`,
+    /// not 404. Optional<T> + JSONDecoder handle the literal `null` natively.
+    func getMyApartmentContext(token: String) async throws -> MyApartmentContextDto? {
         return try await get(path: "Apartments/my-context", token: token)
     }
 

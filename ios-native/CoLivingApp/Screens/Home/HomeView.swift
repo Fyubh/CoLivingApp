@@ -18,8 +18,13 @@ struct HomeView: View {
 
                 if let context = store.apartment {
                     LoadedContent(context: context, store: store)
-                } else if store.isLoading {
-                    ProgressView().tint(AppColor.conifer)
+                } else if store.hasLoaded {
+                    // Loaded successfully but the user has no active
+                    // ApartmentMember — backend returned `null`. Distinct
+                    // from the error path: refresh, don't retry.
+                    EmptyApartmentState {
+                        await store.refresh()
+                    }
                 } else if let error = store.errorMessage {
                     ErrorState(message: error) {
                         Task { await store.refresh() }
