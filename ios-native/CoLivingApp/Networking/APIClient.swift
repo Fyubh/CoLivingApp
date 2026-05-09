@@ -154,6 +154,48 @@ actor APIClient {
         return resp.settlementId
     }
 
+    // MARK: - Inventory endpoints
+
+    func getInventoryItems(
+        apartmentId: UUID,
+        status: ItemStatus,
+        token: String
+    ) async throws -> [ItemDto] {
+        return try await get(
+            path: "Inventory/\(apartmentId.uuidString)",
+            token: token,
+            query: [URLQueryItem(name: "status", value: status.rawValue)]
+        )
+    }
+
+    func createInventoryItem(payload: CreateItemPayload, token: String) async throws -> UUID {
+        let resp: CreateItemResponse = try await post(
+            path: "Inventory",
+            body: payload,
+            token: token
+        )
+        return resp.itemId
+    }
+
+    /// Soft-delete via status: pivots Available → Consumed. Server returns
+    /// `200 OK` with an empty body, so we route through `postIgnoringBody`.
+    func consumeInventoryItem(itemId: UUID, apartmentId: UUID, token: String) async throws {
+        try await postIgnoringBody(
+            path: "Inventory/consume",
+            body: ConsumeItemPayload(itemId: itemId, apartmentId: apartmentId),
+            token: token
+        )
+    }
+
+    /// Hard delete. Both ids live in the URL; no body. Server returns
+    /// `200 OK` with an empty body.
+    func removeInventoryItem(itemId: UUID, apartmentId: UUID, token: String) async throws {
+        try await deleteRequest(
+            path: "Inventory/\(itemId.uuidString)/\(apartmentId.uuidString)",
+            token: token
+        )
+    }
+
     // MARK: - Generic
 
     private func get<Resp: Decodable>(
@@ -198,6 +240,66 @@ actor APIClient {
         }
         req.httpBody = try encoder.encode(body)
         return try await send(req)
+    }
+
+    /// POST with a body whose response is `200 OK` with no body. Used by
+    /// workflow endpoints (Inventory consume, Chores complete/confirm/reject)
+    /// that don't return anything meaningful — saves us inventing throwaway
+    /// `WorkflowResponse` envelopes per call site.
+    private func postIgnoringBody<Body: Encodable>(
+        path: String,
+        body: Body,
+        token: String?
+    ) async throws {
+        guard let url = URL(string: path, relativeTo: baseURL) else {
+            throw APIError.invalidURL
+        }
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.setValue("application/json", forHTTPHeaderField: "Accept")
+        if let token {
+            req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        req.httpBody = try encoder.encode(body)
+        try await sendIgnoringBody(req)
+    }
+
+    /// Bodyless DELETE. Server returns `200 OK` with no body.
+    private func deleteRequest(path: String, token: String?) async throws {
+        guard let url = URL(string: path, relativeTo: baseURL) else {
+            throw APIError.invalidURL
+        }
+        var req = URLRequest(url: url)
+        req.httpMethod = "DELETE"
+        if let token {
+            req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        try await sendIgnoringBody(req)
+    }
+
+    private func sendIgnoringBody(_ req: URLRequest) async throws {
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await session.data(for: req)
+        } catch let urlError as URLError {
+            throw APIError.network(urlError)
+        }
+
+        guard let http = response as? HTTPURLResponse else {
+            throw APIError.http(status: -1, body: nil)
+        }
+
+        if (200..<300).contains(http.statusCode) { return }
+
+        if let envelope = try? decoder.decode(ErrorEnvelope.self, from: data) {
+            throw APIError.server(message: envelope.error)
+        }
+        if http.statusCode == 401 {
+            throw APIError.unauthorized
+        }
+        throw APIError.http(status: http.statusCode, body: String(data: data, encoding: .utf8))
     }
 
     private func send<Resp: Decodable>(_ req: URLRequest) async throws -> Resp {

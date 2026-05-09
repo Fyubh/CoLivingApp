@@ -62,9 +62,7 @@ struct NeighborsView: View {
             case .finance:
                 FinanceView(apartment: apartment, auth: auth)
             case .products:
-                NeighborsPendingPane(
-                    hint: "Общий список покупок появится в следующей сборке."
-                )
+                ProductsView(apartment: apartment, auth: auth)
             case .cleaning:
                 NeighborsPendingPane(
                     hint: "Очерёдность уборки появится в следующей сборке."
