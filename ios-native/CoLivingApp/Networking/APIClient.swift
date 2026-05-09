@@ -126,6 +126,34 @@ actor APIClient {
         )
     }
 
+    // MARK: - Finance (Expenses) endpoints
+
+    func getExpenses(apartmentId: UUID, token: String) async throws -> [ExpenseDto] {
+        return try await get(path: "Expenses/\(apartmentId.uuidString)", token: token)
+    }
+
+    func getBalance(apartmentId: UUID, token: String) async throws -> [UserBalanceDto] {
+        return try await get(path: "Expenses/balance/\(apartmentId.uuidString)", token: token)
+    }
+
+    func createExpense(payload: CreateExpensePayload, token: String) async throws -> UUID {
+        let resp: CreateExpenseResponse = try await post(
+            path: "Expenses",
+            body: payload,
+            token: token
+        )
+        return resp.expenseId
+    }
+
+    func settleDebt(payload: SettleDebtPayload, token: String) async throws -> UUID {
+        let resp: SettleDebtResponse = try await post(
+            path: "Expenses/settle",
+            body: payload,
+            token: token
+        )
+        return resp.settlementId
+    }
+
     // MARK: - Generic
 
     private func get<Resp: Decodable>(
