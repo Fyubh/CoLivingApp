@@ -17,7 +17,7 @@ struct RootTabView: View {
             ServicesView(auth: auth)
                 .tabItem { Label("Услуги", systemImage: "wrench.and.screwdriver") }
 
-            NeighborsView()
+            NeighborsView(auth: auth)
                 .tabItem { Label("Соседи", systemImage: "person.2") }
 
             CommunityView()
