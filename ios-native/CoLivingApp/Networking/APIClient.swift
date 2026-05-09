@@ -196,6 +196,48 @@ actor APIClient {
         )
     }
 
+    // MARK: - Chores endpoints
+
+    func getChores(apartmentId: UUID, token: String) async throws -> [ChoreDto] {
+        return try await get(path: "Chores/\(apartmentId.uuidString)", token: token)
+    }
+
+    func createChore(payload: CreateChorePayload, token: String) async throws -> UUID {
+        let resp: CreateChoreResponse = try await post(
+            path: "Chores",
+            body: payload,
+            token: token
+        )
+        return resp.choreId
+    }
+
+    func completeChore(choreId: UUID, apartmentId: UUID, token: String) async throws {
+        try await postIgnoringBody(
+            path: "Chores/\(choreId.uuidString)/complete",
+            body: ChoreActionPayload(apartmentId: apartmentId),
+            token: token
+        )
+    }
+
+    func confirmChore(choreId: UUID, apartmentId: UUID, token: String) async throws {
+        try await postIgnoringBody(
+            path: "Chores/\(choreId.uuidString)/confirm",
+            body: ChoreActionPayload(apartmentId: apartmentId),
+            token: token
+        )
+    }
+
+    /// Reject side-effect: backend creates a €5 penalty Expense charged to
+    /// the chore's assignee. Caller is expected to surface that in a
+    /// confirmation alert before invoking.
+    func rejectChore(choreId: UUID, apartmentId: UUID, token: String) async throws {
+        try await postIgnoringBody(
+            path: "Chores/\(choreId.uuidString)/reject",
+            body: ChoreActionPayload(apartmentId: apartmentId),
+            token: token
+        )
+    }
+
     // MARK: - Generic
 
     private func get<Resp: Decodable>(

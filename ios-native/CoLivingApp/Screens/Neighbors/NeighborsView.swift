@@ -64,9 +64,7 @@ struct NeighborsView: View {
             case .products:
                 ProductsView(apartment: apartment, auth: auth)
             case .cleaning:
-                NeighborsPendingPane(
-                    hint: "Очерёдность уборки появится в следующей сборке."
-                )
+                CleaningView(apartment: apartment, auth: auth)
             }
         }
     }
@@ -81,24 +79,6 @@ enum NeighborsSection: String, CaseIterable, Identifiable {
         case .products: return "Покупки"
         case .cleaning: return "Уборка"
         }
-    }
-}
-
-private struct NeighborsPendingPane: View {
-    let hint: String
-
-    var body: some View {
-        VStack(spacing: Spacing.s16) {
-            Image(systemName: "ellipsis.circle")
-                .font(.system(size: 36, weight: .light))
-                .foregroundStyle(AppColor.inkTertiary)
-            Text(hint)
-                .appText(.body)
-                .foregroundStyle(AppColor.inkSecondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, Spacing.s24)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
