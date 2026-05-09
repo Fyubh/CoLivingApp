@@ -1,7 +1,9 @@
 using System.Security.Claims;
 using CoLivingApp.Application.Features.Users.Commands.Auth;
+using CoLivingApp.Application.Features.Users.Queries.GetMe;
 using CoLivingApp.Application.Features.Apartments.Queries.GetMyApartmentContext;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CoLivingApp.Api.Controllers;
@@ -41,6 +43,25 @@ public class AuthController : ControllerBase
         if (string.IsNullOrEmpty(userId)) return Unauthorized();
 
         var result = await _mediator.Send(new GetMyApartmentContextQuery(userId));
+        return result.IsSuccess
+            ? Ok(result.Value)
+            : BadRequest(new { error = result.Error });
+    }
+
+    /// <summary>
+    /// GET /api/Auth/me — данные о самом пользователе для экрана «Профиль».
+    /// Email/Role/Name можно было бы вытащить из JWT-клеймов, но единый
+    /// эндпоинт упрощает добавление новых полей и валидацию сессии при
+    /// холодном старте.
+    /// </summary>
+    [Authorize]
+    [HttpGet("me")]
+    public async Task<IActionResult> GetMe()
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+        var result = await _mediator.Send(new GetMeQuery(userId));
         return result.IsSuccess
             ? Ok(result.Value)
             : BadRequest(new { error = result.Error });

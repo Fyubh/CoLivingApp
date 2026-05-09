@@ -54,6 +54,14 @@ actor APIClient {
         return try await post(path: "Users/change-password", body: body, token: token)
     }
 
+    // MARK: - User endpoints
+
+    /// Used by Profile to render identity (avatar / name / email / role).
+    /// Cheap query — no joins server-side, just the Users row.
+    func getMe(token: String) async throws -> MeDto {
+        return try await get(path: "Auth/me", token: token)
+    }
+
     // MARK: - Home endpoints
 
     /// Returns `nil` when the user has no active apartment membership — the

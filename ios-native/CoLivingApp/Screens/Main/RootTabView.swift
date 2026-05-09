@@ -23,7 +23,7 @@ struct RootTabView: View {
             CommunityView()
                 .tabItem { Label("Сообщество", systemImage: "bubble.left.and.bubble.right") }
 
-            ProfileView(onSignOut: onSignOut)
+            ProfileView(auth: auth, onSignOut: onSignOut)
                 .tabItem { Label("Профиль", systemImage: "person.crop.circle") }
         }
         .tint(AppColor.conifer)
