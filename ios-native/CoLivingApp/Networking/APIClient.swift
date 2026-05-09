@@ -83,6 +83,49 @@ actor APIClient {
         )
     }
 
+    // MARK: - Maintenance endpoints
+
+    func getMyMaintenanceRequests(token: String) async throws -> [MaintenanceRequestDto] {
+        return try await get(path: "Maintenance/my", token: token)
+    }
+
+    func createMaintenanceRequest(
+        payload: CreateMaintenancePayload,
+        token: String
+    ) async throws -> UUID {
+        let resp: CreateMaintenanceResponse = try await post(
+            path: "Maintenance",
+            body: payload,
+            token: token
+        )
+        return resp.maintenanceRequestId
+    }
+
+    func cancelMaintenanceRequest(
+        id: UUID,
+        reason: String?,
+        token: String
+    ) async throws {
+        let _: MaintenanceWorkflowResponse = try await post(
+            path: "Maintenance/\(id.uuidString)/cancel",
+            body: CancelMaintenancePayload(reason: reason),
+            token: token
+        )
+    }
+
+    func rateMaintenanceRequest(
+        id: UUID,
+        rating: Int,
+        feedback: String?,
+        token: String
+    ) async throws {
+        let _: MaintenanceWorkflowResponse = try await post(
+            path: "Maintenance/\(id.uuidString)/rate",
+            body: RateMaintenancePayload(rating: rating, feedback: feedback),
+            token: token
+        )
+    }
+
     // MARK: - Generic
 
     private func get<Resp: Decodable>(

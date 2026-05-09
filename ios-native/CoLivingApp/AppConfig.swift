@@ -10,4 +10,10 @@ enum AppConfig {
 
     /// Public privacy policy. Opened in Safari from the Profile tab.
     static let privacyPolicyURL = URL(string: "https://example.com/privacy")!
+
+    /// Visual-only feature placeholders (Bookings / VIP / PS5 / Contract on
+    /// the Services tab; the Community tab as a whole). Hard-excluded from
+    /// MVP per `project_scope.md`; FLIP TO FALSE BEFORE TESTFLIGHT so App
+    /// Review doesn't see fake-feature surface area.
+    static let showVisualPlaceholders = true
 }
