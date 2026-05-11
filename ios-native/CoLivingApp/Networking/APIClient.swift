@@ -35,7 +35,15 @@ actor APIClient {
             )
         }
         self.decoder = dec
-        self.encoder = JSONEncoder()
+
+        // ISO 8601 strings on the write path so `DateTime?` fields on
+        // the .NET side bind (it can't read a JSON Number). Default
+        // `.deferredToDate` was silently producing a numeric epoch and
+        // 400'ing POST /Chores and POST /Inventory whenever the form
+        // included a date.
+        let enc = JSONEncoder()
+        enc.dateEncodingStrategy = .iso8601
+        self.encoder = enc
     }
 
     // MARK: - Auth endpoints
