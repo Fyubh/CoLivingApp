@@ -56,6 +56,20 @@ private struct LoadedContent: View {
                         Task { await store.markRead(id: id) }
                     }
                 }
+
+                if !store.inventoryPreview.isEmpty {
+                    VStack(alignment: .leading, spacing: Spacing.s8) {
+                        SectionHeader("Покупки")
+                        InventoryPreviewList(items: store.inventoryPreview)
+                    }
+                }
+
+                if let chore = store.nextChore {
+                    VStack(alignment: .leading, spacing: Spacing.s8) {
+                        SectionHeader("Ближайшая уборка")
+                        NextChoreCard(chore: chore)
+                    }
+                }
             }
             .padding(.horizontal, Spacing.s20)
             .padding(.top, Spacing.s12)
@@ -100,4 +114,123 @@ private struct ErrorState: View {
         }
         .padding(Spacing.s24)
     }
+}
+
+// MARK: - Home aggregation tiles
+
+/// Top-N Available inventory rows wrapped in one glass panel (same container
+/// shape as `NotificationsList`). Read-only — taps and swipes live in
+/// `ProductsView`; this is just a glance for the Home dashboard.
+private struct InventoryPreviewList: View {
+    let items: [ItemDto]
+
+    var body: some View {
+        GlassCard(padding: 0) {
+            VStack(spacing: 0) {
+                ForEach(Array(items.enumerated()), id: \.element.id) { idx, item in
+                    if idx > 0 {
+                        Rectangle()
+                            .fill(AppColor.hairline)
+                            .frame(height: 0.5)
+                    }
+                    InventoryPreviewRow(item: item)
+                }
+            }
+        }
+    }
+}
+
+private struct InventoryPreviewRow: View {
+    let item: ItemDto
+
+    var body: some View {
+        HStack(spacing: Spacing.s12) {
+            Image(systemName: item.itemCategory?.icon ?? "shippingbox")
+                .font(.system(size: 14, weight: .regular))
+                .foregroundStyle(AppColor.conifer)
+                .frame(width: 28, height: 28)
+                .background(Circle().fill(AppColor.conifer.opacity(0.08)))
+
+            Text(item.name)
+                .appText(.bodyMed)
+                .foregroundStyle(AppColor.ink)
+                .lineLimit(1)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            Text(quantityLabel)
+                .appText(.footnote)
+                .foregroundStyle(AppColor.inkSecondary)
+        }
+        .padding(.horizontal, Spacing.s16)
+        .padding(.vertical, Spacing.s12)
+    }
+
+    private var quantityLabel: String {
+        let qty = formatQuantity(item.quantity)
+        if let unit = item.unitType?.shortLabel {
+            return "\(qty) \(unit)"
+        }
+        return qty
+    }
+}
+
+/// Single-card preview for the earliest-due pending chore. Mirrors the
+/// CleaningView row shape so users recognise the same data on both screens.
+/// Read-only on Home — completion/review actions live in `CleaningView`.
+private struct NextChoreCard: View {
+    let chore: ChoreDto
+
+    var body: some View {
+        GlassCard(padding: Spacing.s16) {
+            HStack(alignment: .top, spacing: Spacing.s12) {
+                Image(systemName: chore.choreCategory?.icon ?? "checkmark.circle")
+                    .font(.system(size: 16, weight: .regular))
+                    .foregroundStyle(AppColor.conifer)
+                    .frame(width: 36, height: 36)
+                    .background(Circle().fill(AppColor.conifer.opacity(0.08)))
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(chore.title)
+                        .appText(.bodyMed)
+                        .foregroundStyle(AppColor.ink)
+                        .lineLimit(2)
+
+                    if let subtitle {
+                        Text(subtitle)
+                            .appText(.footnote)
+                            .foregroundStyle(AppColor.inkSecondary)
+                            .lineLimit(1)
+                    }
+                }
+
+                Spacer(minLength: Spacing.s8)
+            }
+        }
+    }
+
+    private var subtitle: String? {
+        var parts: [String] = []
+        if let assignee = chore.assignedName {
+            parts.append("Исполняет: \(assignee)")
+        }
+        if let due = chore.dueDate {
+            parts.append("до \(formatChoreDate(due))")
+        }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
+    }
+}
+
+private func formatQuantity(_ value: Decimal) -> String {
+    let nf = NumberFormatter()
+    nf.locale = Locale(identifier: "ru_RU")
+    nf.minimumFractionDigits = 0
+    nf.maximumFractionDigits = 2
+    return nf.string(from: value as NSDecimalNumber) ?? "\(value)"
+}
+
+private func formatChoreDate(_ date: Date) -> String {
+    let f = DateFormatter()
+    f.locale = Locale(identifier: "ru_RU")
+    f.dateFormat = "d MMM"
+    return f.string(from: date)
 }

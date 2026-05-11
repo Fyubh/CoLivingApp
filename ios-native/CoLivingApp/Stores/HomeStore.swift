@@ -12,12 +12,21 @@ import Observation
 final class HomeStore {
     private(set) var apartment: MyApartmentContextDto?
     private(set) var notifications: [ResidentNotificationDto] = []
+    /// Top N Available inventory items for the Home «Покупки» preview.
+    /// Fail-soft: stays empty if the secondary fetch errors so the screen
+    /// still renders apartment + notifications.
+    private(set) var inventoryPreview: [ItemDto] = []
+    /// Earliest-due pending chore, surfaced on Home as «Ближайшая уборка».
+    /// Nil when there are no pending chores or the secondary fetch errored.
+    private(set) var nextChore: ChoreDto?
     private(set) var isLoading: Bool = false
     /// Flips to `true` after the first successful refresh, regardless of
     /// whether `apartment` came back non-nil. Lets HomeView distinguish
     /// "still loading" from "loaded and the user has no apartment".
     private(set) var hasLoaded = false
     var errorMessage: String?
+
+    private static let inventoryPreviewLimit = 5
 
     private let api: APIClient
     private let auth: AuthStore
@@ -48,6 +57,20 @@ final class HomeStore {
             }
             self.apartment = try await apt
             self.notifications = try await notif
+
+            // Secondary fetches: only meaningful when we have an apartment.
+            // Run in parallel with each other; failures don't poison the
+            // Home screen — the relevant section just stays empty.
+            if let apartmentId = self.apartment?.apartmentId {
+                async let inv = self.fetchInventoryPreview(apartmentId: apartmentId)
+                async let chr = self.fetchNextChore(apartmentId: apartmentId)
+                self.inventoryPreview = await inv
+                self.nextChore = await chr
+            } else {
+                self.inventoryPreview = []
+                self.nextChore = nil
+            }
+
             self.hasLoaded = true
         } catch APIError.unauthorized {
             // AuthStore already signed out; AuthFlow will rebuild to Login.
@@ -88,6 +111,49 @@ final class HomeStore {
             }
             errorMessage = friendlyMessage(for: error)
         }
+    }
+
+    // MARK: - Secondary fetches (fail-soft)
+
+    private func fetchInventoryPreview(apartmentId: UUID) async -> [ItemDto] {
+        do {
+            let items = try await auth.authedCall { token in
+                try await self.api.getInventoryItems(
+                    apartmentId: apartmentId,
+                    status: .available,
+                    token: token
+                )
+            }
+            return Array(items.prefix(Self.inventoryPreviewLimit))
+        } catch {
+            return []
+        }
+    }
+
+    private func fetchNextChore(apartmentId: UUID) async -> ChoreDto? {
+        do {
+            let chores = try await auth.authedCall { token in
+                try await self.api.getChores(apartmentId: apartmentId, token: token)
+            }
+            return Self.pickNextChore(from: chores)
+        } catch {
+            return nil
+        }
+    }
+
+    /// Earliest-due pending chore. Chores without a `dueDate` sort after
+    /// dated ones so the user always sees the most time-sensitive item.
+    private static func pickNextChore(from chores: [ChoreDto]) -> ChoreDto? {
+        return chores
+            .filter { $0.choreStatus == .pending }
+            .min { lhs, rhs in
+                switch (lhs.dueDate, rhs.dueDate) {
+                case let (l?, r?): return l < r
+                case (_?, nil):    return true
+                case (nil, _?):    return false
+                case (nil, nil):   return false
+                }
+            }
     }
 
     private func friendlyMessage(for error: Error) -> String {
