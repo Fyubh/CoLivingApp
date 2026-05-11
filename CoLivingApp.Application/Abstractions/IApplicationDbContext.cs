@@ -19,6 +19,8 @@ public interface IApplicationDbContext
     DbSet<RecurringExpense> RecurringExpenses { get; }
     DbSet<RecurringChore> RecurringChores { get; }
     DbSet<ChatMessage> ChatMessages { get; }
+    DbSet<ChatMessageReport> ChatMessageReports { get; }
+    DbSet<ChatBlock> ChatBlocks { get; }
     DbSet<Incident> Incidents { get; }
 
     // === Building layer ===

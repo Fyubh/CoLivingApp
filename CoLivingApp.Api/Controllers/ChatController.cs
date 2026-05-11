@@ -26,7 +26,10 @@ public class ChatController : ControllerBase
     [HttpGet("{apartmentId}")]
     public async Task<IActionResult> GetHistory(Guid apartmentId)
     {
-        var result = await _mediator.Send(new GetChatHistoryQuery(apartmentId));
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+        var result = await _mediator.Send(new GetChatHistoryQuery(apartmentId, userId));
         return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
     }
 
@@ -34,8 +37,9 @@ public class ChatController : ControllerBase
     public async Task<IActionResult> SendMessage([FromBody] SendMessageRequest request)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        var command = new SendMessageCommand(request.ApartmentId, userId!, request.Text);
-        
+        if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+        var command = new SendMessageCommand(request.ApartmentId, userId, request.Text);
         var result = await _mediator.Send(command);
 
         if (result.IsSuccess)
@@ -46,6 +50,48 @@ public class ChatController : ControllerBase
         }
         return BadRequest(new { error = result.Error });
     }
+
+    [HttpDelete("messages/{messageId}")]
+    public async Task<IActionResult> DeleteMessage(Guid messageId)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+        var result = await _mediator.Send(new DeleteMessageCommand(messageId, userId));
+        return result.IsSuccess ? Ok() : BadRequest(new { error = result.Error });
+    }
+
+    [HttpPost("messages/{messageId}/report")]
+    public async Task<IActionResult> ReportMessage(Guid messageId, [FromBody] ReportMessageRequest request)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+        var result = await _mediator.Send(new ReportMessageCommand(messageId, userId, request?.Reason));
+        return result.IsSuccess ? Ok() : BadRequest(new { error = result.Error });
+    }
+
+    [HttpPost("blocks")]
+    public async Task<IActionResult> BlockUser([FromBody] BlockUserRequest request)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+        var result = await _mediator.Send(new BlockUserCommand(userId, request.BlockedUserId));
+        return result.IsSuccess ? Ok() : BadRequest(new { error = result.Error });
+    }
+
+    [HttpDelete("blocks/{blockedUserId}")]
+    public async Task<IActionResult> UnblockUser(string blockedUserId)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+        var result = await _mediator.Send(new UnblockUserCommand(userId, blockedUserId));
+        return result.IsSuccess ? Ok() : BadRequest(new { error = result.Error });
+    }
 }
 
 public record SendMessageRequest(Guid ApartmentId, string Text);
+public record ReportMessageRequest(string? Reason);
+public record BlockUserRequest(string BlockedUserId);

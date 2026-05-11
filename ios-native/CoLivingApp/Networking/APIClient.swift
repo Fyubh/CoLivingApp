@@ -246,6 +246,45 @@ actor APIClient {
         )
     }
 
+    // MARK: - Chat endpoints
+
+    func getChatHistory(apartmentId: UUID, token: String) async throws -> [ChatMessageDto] {
+        return try await get(path: "Chat/\(apartmentId.uuidString)", token: token)
+    }
+
+    /// Сервер возвращает `200 OK` с пустым телом для `POST /Chat`.
+    func sendChatMessage(apartmentId: UUID, text: String, token: String) async throws {
+        try await postIgnoringBody(
+            path: "Chat",
+            body: SendMessagePayload(apartmentId: apartmentId, text: text),
+            token: token
+        )
+    }
+
+    func deleteChatMessage(messageId: UUID, token: String) async throws {
+        try await deleteRequest(path: "Chat/messages/\(messageId.uuidString)", token: token)
+    }
+
+    func reportChatMessage(messageId: UUID, reason: String?, token: String) async throws {
+        try await postIgnoringBody(
+            path: "Chat/messages/\(messageId.uuidString)/report",
+            body: ReportMessagePayload(reason: reason),
+            token: token
+        )
+    }
+
+    func blockChatUser(blockedUserId: String, token: String) async throws {
+        try await postIgnoringBody(
+            path: "Chat/blocks",
+            body: BlockUserPayload(blockedUserId: blockedUserId),
+            token: token
+        )
+    }
+
+    func unblockChatUser(blockedUserId: String, token: String) async throws {
+        try await deleteRequest(path: "Chat/blocks/\(blockedUserId)", token: token)
+    }
+
     // MARK: - Generic
 
     private func get<Resp: Decodable>(
