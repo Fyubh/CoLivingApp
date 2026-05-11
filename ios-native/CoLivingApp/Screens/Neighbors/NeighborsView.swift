@@ -1,13 +1,12 @@
 import SwiftUI
 
-/// Соседи tab — three roommate-scoped modules behind a segmented picker:
+/// Соседи tab — four roommate-scoped modules behind a segmented picker:
 /// **Финансы** (Expenses + Balance), **Покупки** (shared Inventory),
-/// **Уборка** (Chores rotation). Chat is intentionally not shipped in MVP —
-/// the backend lacks the moderation primitives (delete / report / block)
-/// that App Review requires for user-generated message surfaces.
+/// **Уборка** (Chores rotation), **Чат** (apartment-scoped messaging with
+/// delete-own / report / block moderation — added in Phase 7.3).
 ///
 /// Owns `NeighborsStore` (apartment context). Each pane owns its own list
-/// store — wired in 6.1 / 6.2 / 6.3.
+/// store — wired in 6.1 / 6.2 / 6.3 / 7.3.
 struct NeighborsView: View {
     @State private var store: NeighborsStore
     @State private var section: NeighborsSection = .finance
@@ -65,19 +64,22 @@ struct NeighborsView: View {
                 ProductsView(apartment: apartment, auth: auth)
             case .cleaning:
                 CleaningView(apartment: apartment, auth: auth)
+            case .chat:
+                ChatView(apartment: apartment, auth: auth)
             }
         }
     }
 }
 
 enum NeighborsSection: String, CaseIterable, Identifiable {
-    case finance, products, cleaning
+    case finance, products, cleaning, chat
     var id: String { rawValue }
     var label: String {
         switch self {
         case .finance:  return "Финансы"
         case .products: return "Покупки"
         case .cleaning: return "Уборка"
+        case .chat:     return "Чат"
         }
     }
 }

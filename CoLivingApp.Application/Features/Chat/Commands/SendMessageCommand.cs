@@ -32,7 +32,7 @@ public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, Res
             .Select(u => u.Name)
             .FirstOrDefaultAsync(cancellationToken);
 
-        var dto = new ChatMessageDto(message.Id, message.SenderId, senderName ?? "Неизвестный", message.Text, message.SentAt);
+        var dto = new ChatMessageDto(message.Id, message.SenderId, senderName ?? "Неизвестный", message.Text, message.SentAt, false);
         return Result<ChatMessageDto>.Success(dto);
     }
 }

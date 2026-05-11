@@ -32,6 +32,8 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
     public DbSet<RecurringExpense> RecurringExpenses => Set<RecurringExpense>();
     public DbSet<RecurringChore> RecurringChores => Set<RecurringChore>();
     public DbSet<ChatMessage> ChatMessages => Set<ChatMessage>();
+    public DbSet<ChatMessageReport> ChatMessageReports => Set<ChatMessageReport>();
+    public DbSet<ChatBlock> ChatBlocks => Set<ChatBlock>();
     public DbSet<Incident> Incidents => Set<Incident>();
 
     // === НОВЫЕ DbSet: building-layer ===
