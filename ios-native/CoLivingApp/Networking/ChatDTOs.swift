@@ -22,6 +22,11 @@ nonisolated struct SendMessagePayload: Encodable {
     let text: String
 }
 
+/// Тело `POST /Chat/building/{buildingId}`. Здание идёт в URL, в JSON — только текст.
+nonisolated struct SendBuildingMessagePayload: Encodable {
+    let text: String
+}
+
 /// Тело `POST /Chat/messages/{id}/report`. Reason опциональный — App Review
 /// требует возможность пожаловаться без обязательного комментария.
 nonisolated struct ReportMessagePayload: Encodable {
