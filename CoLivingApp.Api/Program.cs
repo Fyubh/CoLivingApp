@@ -71,6 +71,24 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             // RoleClaimType="role", [Authorize(Roles=...)] начинает искать
             // claim с типом "role", а в principal он лежит под URI — итог 403.
         };
+
+        // SignalR через WebSocket не может проставить заголовок Authorization
+        // (браузерные WS-handshake'и его не пускают), поэтому стандарт —
+        // передавать токен в query-параметре `access_token` только для путей
+        // хабов. На обычные /api/* эндпоинты это не влияет.
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+                var path = context.HttpContext.Request.Path;
+                if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
+                {
+                    context.Token = accessToken;
+                }
+                return Task.CompletedTask;
+            }
+        };
     });
 
 builder.Services.AddAuthorization(); // Обязательно добавляем сервисы авторизации

@@ -107,6 +107,15 @@ export interface CreatedUserDto {
     tempPassword: string;
 }
 
+export interface ChatMessageDto {
+    id: string;
+    senderId: string;
+    senderName: string;
+    text: string;
+    sentAt: string;
+    isDeleted: boolean;
+}
+
 export interface CreateBuildingRequest {
     name: string;
     addressLine: string;
@@ -254,6 +263,11 @@ export const adminService = {
             body,
             isImportant,
         });
+        return response.data;
+    },
+
+    getBuildingChat: async (buildingId: string): Promise<ChatMessageDto[]> => {
+        const response = await api.get<ChatMessageDto[]>(`/Chat/building/${buildingId}`);
         return response.data;
     },
 };

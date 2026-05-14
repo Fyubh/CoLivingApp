@@ -13,8 +13,16 @@ actor APIClient {
     private let decoder: JSONDecoder
     private let encoder: JSONEncoder
 
+    /// URL хаба SignalR — выводится из API baseURL (тот же хост, другой путь).
+    /// Доступен снаружи актора как `nonisolated` константа, чтобы стартовый
+    /// код мог сконфигурировать `SignalRClient` без `await`.
+    nonisolated let hubURL: URL
+
     init(baseURL: URL = URL(string: "http://localhost:5130/api/")!) {
         self.baseURL = baseURL
+        // baseURL заканчивается на `/api/` — относительная ссылка вверх
+        // в хост-сегмент даёт `http(s)://host/hubs/coliving`.
+        self.hubURL = URL(string: "../hubs/coliving", relativeTo: baseURL)!.absoluteURL
         self.session = .shared
 
         let dec = JSONDecoder()
@@ -257,6 +265,18 @@ actor APIClient {
         try await postIgnoringBody(
             path: "Chat",
             body: SendMessagePayload(apartmentId: apartmentId, text: text),
+            token: token
+        )
+    }
+
+    func getBuildingChatHistory(buildingId: UUID, token: String) async throws -> [ChatMessageDto] {
+        return try await get(path: "Chat/building/\(buildingId.uuidString)", token: token)
+    }
+
+    func sendBuildingChatMessage(buildingId: UUID, text: String, token: String) async throws {
+        try await postIgnoringBody(
+            path: "Chat/building/\(buildingId.uuidString)",
+            body: SendBuildingMessagePayload(text: text),
             token: token
         )
     }

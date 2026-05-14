@@ -45,7 +45,36 @@ public class ChatController : ControllerBase
         if (result.IsSuccess)
         {
             // Отправляем сообщение ТОЛЬКО жильцам этой квартиры
-            await _hub.Clients.Group(request.ApartmentId.ToString()).SendAsync("ReceiveChatMessage", result.Value);
+            await _hub.Clients.Group(request.ApartmentId.ToString())
+                .SendAsync("ReceiveApartmentChatMessage", result.Value);
+            return Ok();
+        }
+        return BadRequest(new { error = result.Error });
+    }
+
+    [HttpGet("building/{buildingId}")]
+    public async Task<IActionResult> GetBuildingHistory(Guid buildingId)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+        var result = await _mediator.Send(new GetBuildingChatHistoryQuery(buildingId, userId));
+        return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
+    }
+
+    [HttpPost("building/{buildingId}")]
+    public async Task<IActionResult> SendBuildingMessage(Guid buildingId, [FromBody] SendBuildingMessageRequest request)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+        var command = new SendBuildingChatMessageCommand(buildingId, userId, request.Text);
+        var result = await _mediator.Send(command);
+
+        if (result.IsSuccess)
+        {
+            await _hub.Clients.Group($"building_{buildingId}")
+                .SendAsync("ReceiveBuildingChatMessage", result.Value);
             return Ok();
         }
         return BadRequest(new { error = result.Error });
@@ -93,5 +122,6 @@ public class ChatController : ControllerBase
 }
 
 public record SendMessageRequest(Guid ApartmentId, string Text);
+public record SendBuildingMessageRequest(string Text);
 public record ReportMessageRequest(string? Reason);
 public record BlockUserRequest(string BlockedUserId);

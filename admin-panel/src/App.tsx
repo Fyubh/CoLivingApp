@@ -6,6 +6,7 @@ import type {
     AvailableRoomDto,
     BuildingDto,
     BuildingResidentDto,
+    ChatMessageDto,
     ContractorType,
     CreateBuildingRequest,
     CreatedUserDto,
@@ -18,7 +19,7 @@ import type {
 } from './services/adminService';
 import { API_BASE_URL } from './services/api';
 
-type Tab = 'setup' | 'people' | 'maintenance' | 'notifications';
+type Tab = 'setup' | 'people' | 'maintenance' | 'notifications' | 'chat';
 type Role = 'Tenant' | 'Staff' | 'Admin' | 'SuperAdmin' | null;
 
 const ROLE_CLAIM = 'http://schemas.microsoft.com/ws/2008/06/identity/claims/role';
@@ -74,6 +75,8 @@ function App() {
     const [residents, setResidents] = useState<BuildingResidentDto[]>([]);
     const [staff, setStaff] = useState<StaffDto[]>([]);
     const [maintenance, setMaintenance] = useState<MaintenanceRequestDto[]>([]);
+    const [chatMessages, setChatMessages] = useState<ChatMessageDto[]>([]);
+    const [chatLoaded, setChatLoaded] = useState(false);
 
     const [apartmentFloorId, setApartmentFloorId] = useState('');
     const [unitNumber, setUnitNumber] = useState('');
@@ -146,6 +149,20 @@ function App() {
         }
     }, [residents, noticeTargetUserId]);
 
+    // Сбрасываем кэш чата при смене здания — иначе видим чужие сообщения.
+    useEffect(() => {
+        setChatMessages([]);
+        setChatLoaded(false);
+    }, [selectedBuildingId]);
+
+    // Лениво грузим чат — только когда открыли вкладку. Бэкенд отдаёт 400
+    // если у юзера нет права BuildingAdmin для этого здания (или резидентства);
+    // ошибка прокинется через `run()` в общий message.
+    useEffect(() => {
+        if (tab !== 'chat' || !selectedBuildingId || chatLoaded) return;
+        void loadBuildingChat(selectedBuildingId);
+    }, [tab, selectedBuildingId, chatLoaded]);
+
     async function run(action: () => Promise<void>, success?: string) {
         setBusy(true);
         setMessage(null);
@@ -167,6 +184,14 @@ function App() {
                 ? selectedBuildingId
                 : list[0]?.id || '';
             setSelectedBuildingId(nextBuildingId);
+        });
+    }
+
+    async function loadBuildingChat(buildingId: string) {
+        await run(async () => {
+            const messages = await adminService.getBuildingChat(buildingId);
+            setChatMessages(messages);
+            setChatLoaded(true);
         });
     }
 
@@ -435,6 +460,7 @@ function App() {
                     <TabButton tab="people" active={tab} onClick={setTab} icon="bi-people-fill">Accounts</TabButton>
                     <TabButton tab="maintenance" active={tab} onClick={setTab} icon="bi-tools">Problems</TabButton>
                     <TabButton tab="notifications" active={tab} onClick={setTab} icon="bi-bell-fill">Notices</TabButton>
+                    <TabButton tab="chat" active={tab} onClick={setTab} icon="bi-chat-left-text">Chat</TabButton>
                 </nav>
 
                 <button className="secondary-button" onClick={() => selectedBuildingId && loadBuildingData(selectedBuildingId)} disabled={busy}>
@@ -653,6 +679,42 @@ function App() {
                                 </div>
                             ))}
                             {maintenance.length === 0 && <div className="empty-state">No maintenance requests yet.</div>}
+                        </div>
+                    </section>
+                )}
+
+                {tab === 'chat' && (
+                    <section className="panel">
+                        <PanelTitle icon="bi-chat-left-text" title="Building chat (read-only)" />
+                        <p className="helper-text">
+                            Полный чат здания. В фазе 8.1 — только просмотр; модерация (mute, delete-as-admin, lock) появится в 8.2.
+                        </p>
+                        <div className="item-actions" style={{ marginBottom: 12 }}>
+                            <button
+                                type="button"
+                                className="secondary-button"
+                                onClick={() => selectedBuildingId && loadBuildingChat(selectedBuildingId)}
+                                disabled={busy}
+                            >
+                                <i className="bi bi-arrow-clockwise" />
+                                Refresh chat
+                            </button>
+                        </div>
+                        <div className="list compact">
+                            {chatMessages.length === 0 && chatLoaded && (
+                                <div className="empty-state">No messages yet.</div>
+                            )}
+                            {chatMessages.map((message) => (
+                                <div className="list-item" key={message.id}>
+                                    <div>
+                                        <strong>{message.senderName}</strong>
+                                        <span>{new Date(message.sentAt).toLocaleString('ru-RU')}</span>
+                                        <p style={{ marginTop: 6, fontStyle: message.isDeleted ? 'italic' : 'normal' }}>
+                                            {message.isDeleted ? '[Сообщение удалено автором]' : message.text}
+                                        </p>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     </section>
                 )}

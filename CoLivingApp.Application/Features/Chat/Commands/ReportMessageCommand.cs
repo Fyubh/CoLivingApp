@@ -1,5 +1,6 @@
 using CoLivingApp.Application.Abstractions;
 using CoLivingApp.Domain.Entities;
+using CoLivingApp.Domain.Enums;
 using CoLivingApp.Domain.Shared;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -10,6 +11,8 @@ namespace CoLivingApp.Application.Features.Chat.Commands;
 /// Создаёт жалобу на сообщение. Идемпотентность через unique index
 /// (MessageId, ReporterId) — повторный report от того же жильца обрабатывается
 /// как успех без ошибки. Автор сообщения не может зарепортить сам себя.
+/// Проверка доступа — по скоупу: для apartment-чата требует членства
+/// в этой квартире, для building-чата — резидентства в этом здании.
 /// </summary>
 public record ReportMessageCommand(Guid MessageId, string ReporterId, string? Reason) : IRequest<Result<bool>>;
 
@@ -29,14 +32,14 @@ public class ReportMessageCommandHandler : IRequestHandler<ReportMessageCommand,
         if (message.SenderId == request.ReporterId)
             return Result<bool>.Failure("Нельзя пожаловаться на собственное сообщение.");
 
-        // Жалобу принимаем только от жильца этой же квартиры — иначе любой
-        // юзер из другой квартиры мог бы засыпать чужой чат репортами.
-        var isMember = await _context.ApartmentMembers.AnyAsync(m =>
-            m.ApartmentId == message.ApartmentId
-            && m.UserId == request.ReporterId
-            && m.IsActive, cancellationToken);
+        var hasAccess = message.Scope switch
+        {
+            ChatScope.Apartment => await IsActiveApartmentMember(message.ApartmentId!.Value, request.ReporterId, cancellationToken),
+            ChatScope.Building => await IsActiveResidentOfBuilding(message.BuildingId!.Value, request.ReporterId, cancellationToken),
+            _ => false
+        };
 
-        if (!isMember)
+        if (!hasAccess)
             return Result<bool>.Failure("Нет доступа к этому чату.");
 
         var alreadyReported = await _context.ChatMessageReports.AnyAsync(r =>
@@ -56,4 +59,14 @@ public class ReportMessageCommandHandler : IRequestHandler<ReportMessageCommand,
         await _context.SaveChangesAsync(cancellationToken);
         return Result<bool>.Success(true);
     }
+
+    private Task<bool> IsActiveApartmentMember(Guid apartmentId, string userId, CancellationToken ct) =>
+        _context.ApartmentMembers.AnyAsync(m =>
+            m.ApartmentId == apartmentId && m.UserId == userId && m.IsActive, ct);
+
+    private Task<bool> IsActiveResidentOfBuilding(Guid buildingId, string userId, CancellationToken ct) =>
+        _context.ApartmentMembers
+            .Where(m => m.UserId == userId && m.IsActive)
+            .Join(_context.Apartments, m => m.ApartmentId, a => a.Id, (m, a) => a.BuildingId)
+            .AnyAsync(b => b == buildingId, ct);
 }
